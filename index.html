@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ma précieuse ferme</title>
+  
+  <!-- On charge la police d'écriture Nunito depuis Google -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- Moteur graphique Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  
+  <!-- C'est ici que l'on met tout le design (le CSS) -->
+  <style>
+    :root {
+      /* Voici les couleurs principales, tu pourras les changer plus tard si tu veux ! */
+      --bg: #fdf6ea;
+      --bg2: #fbead0;
+      --card: #ffffff;
+      --border: #ecdfc2;
+      --border2: #e0cc9d;
+      --text: #4a3728;
+      --text2: #8a715a;
+      --muted: #b8a482;
+      --accent: #e8a33d;
+      --accent-dark: #c9863f;
+      --green: #4c8c4a;
+      --r: 12px; --r-sm: 8px; --r-lg: 18px;
+      --shadow: 0 2px 10px rgba(90,60,20,0.07);
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Nunito', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* Le design de l'en-tête (Header) */
+    #hdr {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px;
+      background: linear-gradient(180deg, #fff3da, #fbead0);
+      border-bottom: 2px solid var(--border2);
+    }
+    #hdr .logo { font-size: 28px; }
+    #hdr h1 { font-size: 19px; font-weight: 800; }
+    #hdr .sub { font-size: 12px; color: var(--text2); font-weight: 600; }
+
+    /* Le design du menu de navigation */
+    #nav {
+      display: flex; gap: 4px; padding: 10px 16px 0;
+      background: var(--bg); border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      background: transparent; color: var(--text2); font-weight: 700; font-size: 13.5px;
+      padding: 10px 14px; border-radius: var(--r-sm) var(--r-sm) 0 0; 
+      border: none; border-bottom: 3px solid transparent; cursor: pointer;
+    }
+    .tab-btn.active {
+      color: var(--accent-dark); border-bottom-color: var(--accent); background: var(--card);
+    }
+
+    /* Le design de la zone principale et des "cartes" */
+    main { max-width: 1180px; margin: 0 auto; padding: 18px 16px; }
+    
+    .view { display: none; }
+    .sous-vue { display: none; animation: fadein .18s ease; }
+    .sous-vue.active { display: block; }
+    .view.active { display: block; } /* Seule la vue active est affichée */
+    
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 16px; box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .card h2 { font-size: 15px; font-weight: 800; margin-bottom: 12px; }
+
+    /* La Grille du menu principal (Hub) */
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      margin-top: 24px;
+    }
+    
+    /* Le design des cartes de l'accueil */
+    .module-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+    .module-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(90,60,20,0.12);
+      border-color: var(--accent);
+    }
+    .module-card .icon { font-size: 32px; margin-bottom: 12px; }
+    .module-card h3 { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+    .module-card p { font-size: 12px; color: var(--text2); }
+
+    /* Le petit menu à l'intérieur d'un module */
+    .local-nav {
+      display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto;
+      padding-bottom: 5px;
+    }
+    
+    /* Bouton de retour */
+    .btn-retour {
+      background: transparent; color: var(--text2); font-weight: bold;
+      border: none; cursor: pointer; padding: 0; margin-bottom: 20px;
+      font-size: 14px;
+    }
+    .btn-retour:hover { color: var(--accent-dark); }
+  </style>
+</head>
+<body>
+
+  <!-- 1. L'EN-TÊTE -->
+  <header id="hdr">
+    <div class="logo">🌾</div>
+    <div>
+      <h1>Ma précieuse ferme</h1>
+      <div class="sub">Gestion de petites productions</div>
+    </div>
+  </header>
+
+  <!-- 3. LE CONTENU PRINCIPAL -->
+  <main>
+    
+    <!-- ======================================= -->
+    <!-- VUE 1 : LE HUB CENTRAL (L'ACCUEIL)      -->
+    <!-- ======================================= -->
+    <section class="view active" id="home">
+      
+      <div style="margin-bottom: 20px;">
+        <h2 style="font-size: 28px; font-weight: 800; margin-bottom: 8px;">Bonjour, fermier 👋</h2>
+        <p style="color: var(--text2);">Choisissez une production pour commencer. Masquez ce que vous ne produisez pas dans ⚙️ Paramètres.</p>
+      </div>
+
+      <div class="module-grid">
+        
+        <div class="module-card" data-cible="dashboard">
+          <div class="icon">📊</div>
+          <div>
+            <h3>Tableau de bord général</h3>
+            <p>Vue agrégée de toutes vos productions</p>
+          </div>
+        </div>
+
+        <div class="module-card" id="card-poules" data-cible="poules">
+          <div class="icon">🥚🐓</div>
+          <div><h3>Poulailler & Ponte</h3><p>Œufs de consommation & d'accouvage</p></div>
+        </div>
+
+        <div class="module-card" id="card-jardin" data-cible="jardin">
+          <div class="icon">🌱🥕</div>
+          <div><h3>Légumes du Jardin</h3><p>Potager, Serre, Transformation & Rotations</p></div>
+        </div>
+
+        <div class="module-card" id="card-verger" data-cible="verger">
+          <div class="icon">🌳</div>
+          <div><h3>Verger & Fruits</h3><p>Arbres, Arbustes, Baies & Transformation</p></div>
+        </div>
+
+        <div class="module-card" id="card-elevage" data-cible="elevage">
+          <div class="icon">🐕</div>
+          <div><h3>Élevage d'Agrément</h3><p>Chiens, Chats, Calopsittes, NAC...</p></div>
+        </div>
+
+        <div class="module-card" id="card-rucher" data-cible="rucher">
+          <div class="icon">🍯🐝</div>
+          <div><h3>Rucher & Apiculture</h3><p>Miel, Cire, Sous-produits & Transformation</p></div>
+        </div>
+
+        <div class="module-card" id="card-viande" data-cible="viande">
+          <div class="icon">🦆🐇</div>
+          <div><h3>Élevage & Viande</h3><p>Lapins, Canards, Poulets, Oies, Cailles</p></div>
+        </div>
+
+        <div class="module-card" id="card-laiterie" data-cible="laiterie">
+          <div class="icon">🧀🥛</div>
+          <div><h3>Fromage & Laiterie</h3><p>Lait, Fromages, Yaourts, Beurre & Crème</p></div>
+        </div>
+
+        <div class="module-card" id="card-pain" data-cible="pain">
+          <div class="icon">🍞🌾</div>
+          <div><h3>Pain & Panification</h3><p>Levain, Pains, Brioches & Viennoiseries</p></div>
+        </div>
+
+        <div class="module-card" id="card-brasserie" data-cible="brasserie">
+          <div class="icon">🍺🌾</div>
+          <div><h3>Brasserie Amateur</h3><p>Bière, Brassins, Cuvées & Conditionnement</p></div>
+        </div>
+
+        <div class="module-card" id="card-champignons" data-cible="champignons">
+          <div class="icon">🍄</div>
+          <div><h3>Champignonnière</h3><p>Pleurotes, Shiitakés, Paris & Kits</p></div>
+        </div>
+
+        <div class="module-card" id="card-plantes" data-cible="plantes">
+          <div class="icon">🌿🫖</div>
+          <div><h3>Plantes Aromatiques</h3><p>PAM, Séchage, Mélanges & Cosmétiques</p></div>
+        </div>
+
+        <div class="module-card" data-cible="parametres">
+          <div class="icon">⚙️</div>
+          <div>
+            <h3>Paramètres</h3>
+            <p>Langue, devise, productions & sécurité</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================= -->
+    <!-- VUE 2 : LE MODULE POULAILLER COMPLET    -->
+    <!-- ======================================= -->
+    <section class="view" id="poules">
+      <button class="btn-retour" onclick="retourAccueil()">⬅ Retour au menu principal</button>
+      
+      <!-- Le sous-menu avec le Simulateur ajouté -->
+      <nav class="local-nav">
+        <button class="tab-btn active" data-cible="poules-synthese">📊 Synthèse</button>
+        <button class="tab-btn" data-cible="poules-simulateur">🔮 Simulateur</button>
+        <button class="tab-btn" data-cible="poules-cheptel">🐔 Poules</button>
+        <button class="tab-btn" data-cible="poules-pontes">🥚 Pontes</button>
+        <button class="tab-btn" data-cible="poules-ventes">💶 Ventes</button>
+        <button class="tab-btn" data-cible="poules-clients">👥 Clients</button>
+        <button class="tab-btn" data-cible="poules-stock">📦 Stock</button>
+        <button class="tab-btn" data-cible="poules-couts">💸 Coûts</button>
+        <button class="tab-btn" data-cible="poules-conso">🏠 Consommation</button>
+        <button class="tab-btn" data-cible="poules-invest">🔧 Investissements</button>
+        <button class="tab-btn" data-cible="poules-renta">💰 Rentabilité</button>
+        <button class="tab-btn" data-cible="poules-sauvegarde">💾 Sauvegarde</button>
+      </nav>
+
+      <!-- 1 bis. Simulateur -->
+      <!-- 1 bis. Simulateur -->
+      <div id="poules-simulateur" class="sous-vue">
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+          
+          <!-- Boîte 1 : Paramètres du foyer et Finances -->
+          <div class="card">
+            <h2>⚙️ Paramètres du foyer & Finances</h2>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
+              
+              <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                  <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Personnes</label>
+                  <input type="number" id="sim-personnes" value="2" min="1" style="width: 100%;">
+                </div>
+                <div style="flex: 2;">
+                  <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Consommation d'œufs</label>
+                  <select id="sim-profil" style="width: 100%;">
+                    <option value="2">Petit (~2/sem/pers)</option>
+                    <option value="4" selected>Moyen (~4/sem/pers)</option>
+                    <option value="6">Gros (~6/sem/pers)</option>
+                    <option value="custom">Personnalisé ✍️</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div id="sim-custom-conso-div" style="display: none;">
+                <label style="font-size: 12px; font-weight: bold; color: var(--accent-dark);">Saisis le nombre total d'œufs mangés par semaine :</label>
+                <input type="number" id="sim-custom-conso" value="10" min="1" style="width: 100%; border-color: var(--accent);">
+              </div>
+
+              <hr style="border: 0; border-top: 1px solid var(--border); margin: 5px 0;">
+
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 100px;">
+                  <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Prix commerce (€)</label>
+                  <input type="number" id="sim-prix" value="0.40" step="0.05" min="0" style="width: 100%;">
+                </div>
+                <div style="flex: 1; min-width: 100px;">
+                  <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Prix vente surplus (€)</label>
+                  <input type="number" id="sim-prix-vente" value="0.30" step="0.05" min="0" style="width: 100%;">
+                </div>
+                <div style="flex: 1; min-width: 100px;">
+                  <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Coût entretien (€)</label>
+                  <input type="number" id="sim-cout" value="87.00" step="1" min="0" style="width: 100%;">
+                </div>
+              <!-- NOUVEAU CHAMP INVESTISSEMENT -->
+                <div style="flex: 1; min-width: 100px;">
+                  <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Montant investi (€)</label>
+                  <input type="number" id="sim-investissement" value="250" step="10" min="0" style="width: 100%; border-color: var(--blue);">
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Boîte 2 : Le Bilan en temps réel -->
+          <div class="card" style="background: linear-gradient(145deg, #ffffff, #fdf6ea);">
+            <h2>📊 Bilan Annuel Estimé (Année 1)</h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+              <div style="background: var(--bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+                <div style="font-size: 11px; font-weight: bold; color: var(--text2); text-transform: uppercase;">Besoins Foyer</div>
+                <div style="font-size: 20px; font-weight: 800; color: var(--text);"><span id="res-besoins">0</span> <span style="font-size:12px;">œufs</span></div>
+              </div>
+              
+              <div style="background: var(--bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+                <div style="font-size: 11px; font-weight: bold; color: var(--text2); text-transform: uppercase;">Production totale</div>
+                <div style="font-size: 20px; font-weight: 800; color: var(--text);"><span id="res-production">0</span> <span style="font-size:12px;">œufs</span></div>
+              </div>
+
+              <!-- Ligne de calcul financier (Ajout de l'économie réalisée) -->
+              <div style="background: #eaf8ea; padding: 12px; border-radius: 8px; border: 1px solid #c2e2c3;">
+                <div style="font-size: 11px; font-weight: bold; color: #4a8c4b; text-transform: uppercase;">Économie réalisée (Conso × Prix)</div>
+                <div style="font-size: 20px; font-weight: 800; color: #4a8c4b;">+ <span id="res-economie-brute">0.00</span> <span style="font-size:12px;">€</span></div>
+              </div>
+
+              <div style="background: #eaf2f9; padding: 12px; border-radius: 8px; border: 1px solid #d0e1f0;">
+                <div style="font-size: 11px; font-weight: bold; color: #5d8aa3; text-transform: uppercase;">Ventes du Surplus (<span id="res-surplus">0</span>)</div>
+                <div style="font-size: 20px; font-weight: 800; color: #5d8aa3;">+ <span id="res-ventes">0.00</span> <span style="font-size:12px;">€</span></div>
+              </div>
+
+              <div style="grid-column: 1 / -1; background: #f8ecec; padding: 12px; border-radius: 8px; border: 1px solid #e8d0d0;">
+                <div style="font-size: 11px; font-weight: bold; color: #a35d5d; text-transform: uppercase;">Coût Entretien du Cheptel</div>
+                <div style="font-size: 20px; font-weight: 800; color: #a35d5d;">- <span id="res-cout-total">0.00</span> <span style="font-size:12px;">€</span></div>
+              </div>
+
+              <div style="grid-column: 1 / -1; background: var(--green2); padding: 16px; border-radius: 8px; border: 1px solid #c3e2c2; text-align: center;">
+                <div style="font-size: 12px; font-weight: bold; color: var(--green); text-transform: uppercase;">Bénéfice Réel (Économie + Ventes - Entretien)</div>
+                <div style="font-size: 28px; font-weight: 800; color: var(--green);"><span id="res-economie-nette">0.00</span> <span style="font-size:16px;">€ / an</span></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- NOUVELLE BOÎTE : Rentabilité & ROI -->
+          <div class="card" style="background: linear-gradient(145deg, #ffffff, #eaf2f9);">
+            <h2>📈 Rentabilité & ROI</h2>
+            <p style="font-size: 12px; color: var(--text2); margin-bottom: 15px;">Analyse de l'amortissement du poulailler et du matériel.</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+              
+              <div style="background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                <div style="font-size: 11px; font-weight: bold; color: var(--text2); text-transform: uppercase;">Taux de rentabilité annuel</div>
+                <div style="font-size: 28px; font-weight: 800; color: var(--blue);"><span id="res-taux-roi">0</span> <span style="font-size:16px;">%</span></div>
+              </div>
+              
+              <div style="background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                <div style="font-size: 11px; font-weight: bold; color: var(--text2); text-transform: uppercase;">Retour sur investissement</div>
+                <div style="font-size: 24px; font-weight: 800; color: var(--accent-dark);" id="res-temps-roi">Calcul...</div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Boîte 3 : Sélection des races avec + d'options -->
+          <div class="card" style="grid-column: 1 / -1;">
+            <h2>🐔 Composition du cheptel simulé</h2>
+            <div style="display: flex; gap: 10px; align-items: flex-end; margin-top: 10px;">
+              <div style="flex: 2;">
+                <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Choisir une race</label>
+                <select id="sim-race-select" style="width: 100%;">
+                  <!-- Les grandes pondeuses -->
+                  <option data-ponte="250" data-vie="4" data-couleur="Roux/Brun" data-codecouleur="#c97445">Poule Rousse (250 œufs, Roux)</option>
+                  <option data-ponte="280" data-vie="4" data-couleur="Blanc" data-codecouleur="#ffffff">Leghorn (280 œufs, Blanc)</option>
+                  <!-- Les races pures / mixtes -->
+                  <option data-ponte="200" data-vie="6" data-couleur="Teinté" data-codecouleur="#e6c6a5">Sussex (200 œufs, Teinté)</option>
+                  <option data-ponte="150" data-vie="5" data-couleur="Chocolat" data-codecouleur="#4a2511">Marans (150 œufs, Chocolat)</option>
+                  <option data-ponte="200" data-vie="5" data-couleur="Brun clair" data-codecouleur="#d2b48c">Bielefelder (200 œufs, Brun clair)</option>
+                  <option data-ponte="180" data-vie="5" data-couleur="Bleu/Vert" data-codecouleur="#c6daef">Cream Legbar (180 œufs, Bleu clair)</option>
+                  <option data-ponte="200" data-vie="6" data-couleur="Teinté" data-codecouleur="#e6c6a5">Plymouth Rock (200 œufs, Teinté)</option>
+                  <option data-ponte="140" data-vie="7" data-couleur="Roux clair" data-codecouleur="#d2b48c">Brahma (140 œufs, Roux clair)</option>
+                  <option data-ponte="150" data-vie="6" data-couleur="Roux clair" data-codecouleur="#d2b48c">Orpington (150 œufs, Roux clair)</option>
+                  <option data-ponte="170" data-vie="6" data-couleur="Vert/Bleu" data-codecouleur="#a9c9b5">Araucana (170 œufs, Vert/Bleu)</option>
+                  <option data-ponte="200" data-vie="6" data-couleur="Blanc" data-codecouleur="#ffffff">Gâtinaise (200 œufs, Blanc)</option>
+                  <option data-ponte="150" data-vie="6" data-couleur="Teinté" data-codecouleur="#e6c6a5">Faverolles (150 œufs, Teinté)</option>
+                  <!-- Les races d'ornement -->
+                  <option data-ponte="120" data-vie="8" data-couleur="Crème" data-codecouleur="#fdf6ea">Poule Soie (120 œufs, Crème)</option>
+                </select>
+              </div>
+              <div style="flex: 1;">
+                <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Quantité</label>
+                <input type="number" id="sim-race-qty" value="1" min="1" style="width: 100%;">
+              </div>
+              <div>
+                <button class="btn" id="btn-add-sim-race">Ajouter</button>
+              </div>
+              <div>
+                <button class="btn-outline btn-sm" id="btn-clear-sim" style="padding: 10px;">Vider</button>
+              </div>
+            </div>
+
+            <div class="table-wrap" style="margin-top: 15px;">
+              <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                  <tr style="border-bottom: 2px solid var(--border2); color: var(--text2); font-size: 12px; text-transform: uppercase;">
+                    <th style="padding: 10px;">Qté</th>
+                    <th style="padding: 10px;">Race</th>
+                    <th style="padding: 10px;">Œufs/An</th>
+                    <th style="padding: 10px;">Par saison</th>
+                    <th style="padding: 10px;">Couleur</th>
+                    <th style="padding: 10px;">Espérance vie</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="sim-table-body">
+                  <tr id="sim-empty-row"><td colspan="7" style="text-align:center; padding:15px; color:var(--muted);">Ajoute des races pour lancer la simulation.</td></tr>
+                </tbody>
+                <tfoot>
+                  <tr style="background: var(--bg2); font-weight: bold; border-top: 2px solid var(--border2);">
+                    <td style="padding: 10px;" id="sim-total-qte">0</td>
+                    <td style="padding: 10px; text-align: right;">TOTAL ESTIMÉ :</td>
+                    <td style="padding: 10px;"><span id="sim-total-oeufs">0</span> /an</td>
+                    <!-- C'EST ICI QUE LE TOTAL DES SAISONS APPARAÎTRA -->
+                    <td style="padding: 10px; font-size: 11.5px; color: var(--text);" id="sim-total-saisons">🌸 0 <br> ☀️ 0 <br> 🍂 0 <br> ❄️ 0</td>
+                    <td colspan="3"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+          
+          <!-- Boîte 4 : Graphique de déclin -->
+          <div class="card" style="grid-column: 1 / -1;">
+            <h2>📉 Prévision de ponte sur la durée de vie</h2>
+            <p style="font-size: 12px; color: var(--text2); margin-bottom: 15px;">La production diminue d'environ 15 à 20% par an après la deuxième année.</p>
+            <div style="background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+              <!-- On utilise un Canvas pour dessiner le graphique avec JavaScript -->
+              <canvas id="canvas-declin" width="800" height="250" style="width: 100%; max-width: 100%;"></canvas>
+            </div>
+          </div>
+
+          <!-- BOÎTE 5 : Détail des coûts d'entretien -->
+          <div class="card" style="grid-column: 1 / -1;">
+            <h2>💰 Détail des coûts d'entretien (Pour tout le cheptel)</h2>
+            <div class="table-wrap">
+              <table style="width: 100%; border-collapse: collapse; text-align: center; border: 1px solid var(--border);">
+                <thead>
+                  <tr style="background-color: var(--green); color: white; font-size: 12px;">
+                    <th style="padding: 10px; text-align: left;">OBJET</th>
+                    <th style="padding: 10px;">TOTAL ESTIMÉ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 10px; text-align: left;"><b>🌾 Nourriture</b></td>
+                    <td style="padding: 10px; font-weight: bold; font-size: 15px;"><span id="sim-cout-nourriture">0.00</span> €</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 10px; text-align: left;"><b>🌿 Litière</b></td>
+                    <td style="padding: 10px; font-weight: bold; font-size: 15px;"><span id="sim-cout-litiere">0.00</span> €</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 10px; text-align: left;"><b>⚕️ Santé & Div. (Fixe à 15€/poule)</b></td>
+                    <td style="padding: 10px; font-weight: bold; font-size: 15px;"><span id="sim-cout-sante">0.00</span> €</td>
+                  </tr>
+                  <tr style="background-color: var(--green2); border-bottom: 2px solid var(--green);">
+                    <td style="padding: 10px; text-align: left; color: var(--green); font-size: 14px;"><b>🧮 Total global entretien</b></td>
+                    <td style="padding: 10px; font-weight: bold; font-size: 16px; color: var(--green);"><span id="sim-cout-total2">0.00</span> €</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 2. Poules (Cheptel complet) -->
+      <div id="poules-cheptel" class="sous-vue">
+        
+        <!-- Formulaire Complet -->
+        <div class="card">
+          <h2>➕ Ajouter une poule</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 15px; align-items: end;">
+            
+            <div>
+              <!-- Champ caché pour stocker l'ID si on est en train de modifier -->
+              <input type="hidden" id="poule-id">
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Nom / Repère *</label>
+              <input type="text" id="poule-nom" placeholder="Ex: Blanchette" style="width: 100%;">
+            </div>
+            
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Race</label>
+              <input type="text" id="poule-race" placeholder="Ex: Sussex" style="width: 100%;">
+            </div>
+
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Couleur de l'œuf</label>
+              <select id="poule-couleur" style="width: 100%;">
+                <option value="Roux/Brun">Roux / Brun</option>
+                <option value="Chocolat">Chocolat</option>
+                <option value="Vert/Bleu">Vert / Bleu</option>
+                <option value="Blanc">Blanc</option>
+                <option value="Crémeux">Crémeux</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Date arrivée/naissance</label>
+              <input type="date" id="poule-date" style="width: 100%;">
+            </div>
+
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Fournisseur / Souche</label>
+              <input type="text" id="poule-fournisseur" style="width: 100%;">
+            </div>
+
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Lignée / Parents</label>
+              <input type="text" id="poule-parents" style="width: 100%;">
+            </div>
+
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Prix d'achat (€)</label>
+              <input type="number" id="poule-prix" step="0.01" min="0" style="width: 100%;">
+            </div>
+
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Statut</label>
+              <select id="poule-statut" style="width: 100%;">
+                <option value="En ponte">En ponte</option>
+                <option value="En couvaison">En couvaison</option>
+                <option value="En mue">En mue</option>
+                <option value="Réforme">Réforme</option>
+                <option value="Malade">Malade</option>
+                <option value="Décédé">Décédé</option>
+              </select>
+            </div>
+
+            <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 5px;">
+              <button class="btn" id="btn-ajouter-poule" style="padding: 10px 24px;">Enregistrer la poule</button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Tableau mis à jour -->
+        <div class="card" style="margin-top: 16px;">
+          <h2>🐔 Mon Cheptel</h2>
+          <div class="table-wrap" style="margin-top: 15px;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+              <thead>
+                <tr style="border-bottom: 2px solid var(--border2); color: var(--text2); font-size: 12px; text-transform: uppercase;">
+                  <th style="padding: 10px;">Nom / Origine</th>
+                  <th style="padding: 10px;">Race & Œuf</th>
+                  <th style="padding: 10px;">Arrivée</th>
+                  <th style="padding: 10px;">Prix</th>
+                  <th style="padding: 10px;">Statut</th>
+                  <th style="padding: 10px; text-align: right;">Actions</th> <!-- NOUVELLE COLONNE -->
+                </tr>
+              </thead>
+              <tbody id="tableau-poules-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 3. Pontes -->
+      <div id="poules-pontes" class="sous-vue">
+        
+        <!-- Boîte d'enregistrement -->
+        <div class="card">
+          <h2>🥚 Enregistrer une récolte</h2>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-top: 15px;">
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Date *</label><br>
+              <input type="date" id="ponte-date" style="width: 130px;">
+            </div>
+            
+            <!-- NOUVEAU : Le menu déroulant lié à tes poules -->
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Poule / Repère *</label><br>
+              <select id="ponte-poule" style="width: 160px;">
+                <option value="">-- Choisir --</option>
+                <option value="Global" data-couleur="Mixte" data-race="Troupeau">Lot Global (Troupeau)</option>
+                <!-- Le JS viendra insérer tes poules ici -->
+              </select>
+            </div>
+
+            <!-- NOUVEAU : La couleur (grisée, se remplit toute seule) -->
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Couleur</label><br>
+              <input type="text" id="ponte-couleur" readonly style="width: 90px; background: var(--bg2); color: var(--text2); border: 1px dashed var(--border2);">
+            </div>
+
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Quantité *</label><br>
+              <input type="number" id="ponte-qte" value="1" min="1" style="width: 70px; font-weight: bold; color: var(--accent-dark);">
+            </div>
+            
+            <div style="flex: 1; min-width: 150px;">
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Commentaire</label><br>
+              <input type="text" id="ponte-commentaire" placeholder="Ex: Œufs un peu petits..." style="width: 100%;">
+            </div>
+            
+            <div>
+              <button class="btn" id="btn-ajouter-ponte" style="padding: 10px 20px;">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tableau d'historique -->
+        <div class="card" style="margin-top: 16px;">
+          <h2>📖 Historique des pontes</h2>
+          <div class="table-wrap" style="margin-top: 15px;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+              <thead>
+                <tr style="background: var(--bg); border-bottom: 2px solid var(--border2); color: var(--text2); font-size: 12px; text-transform: uppercase;">
+                  <th style="padding: 10px;">Date</th>
+                  <th style="padding: 10px;">Race / Groupe</th>
+                  <th style="padding: 10px;">Quantité</th>
+                  <th style="padding: 10px;">Commentaire</th>
+                  <th style="padding: 10px; text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tableau-pontes-body">
+                <!-- Rempli par le JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Ventes -->
+      <div id="poules-ventes" class="sous-vue">
+        
+        <!-- Boîte d'enregistrement de la vente -->
+        <div class="card">
+          <h2>💶 Enregistrer une vente</h2>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-top: 15px;">
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Date *</label><br>
+              <input type="date" id="vente-date" style="width: 130px;">
+            </div>
+            <div style="flex: 1; min-width: 120px;">
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Client *</label><br>
+              <input type="text" id="vente-client" placeholder="Ex: Voisin, Jean..." style="width: 100%;">
+            </div>
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Type d'œuf (Stock) *</label><br>
+              <select id="vente-race" style="width: 180px;">
+                <option value="">-- Choisir en stock --</option>
+                <!-- L'automate remplira ceci avec ton vrai stock -->
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Qté *</label><br>
+              <input type="number" id="vente-qte" value="6" min="1" style="width: 60px;">
+            </div>
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Prix/œuf (€)</label><br>
+              <input type="number" id="vente-prix" value="0.40" step="0.05" style="width: 70px;">
+            </div>
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Total (€)</label><br>
+              <input type="text" id="vente-total" value="2.40" readonly style="width: 70px; background: var(--bg2); font-weight: bold; color: var(--green); border-color: var(--green);">
+            </div>
+            <div>
+              <button class="btn" id="btn-ajouter-vente" style="padding: 10px 20px;">Vendre</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tableau d'historique -->
+        <div class="card" style="margin-top: 16px;">
+          <h2>📜 Historique des ventes</h2>
+          <div class="table-wrap" style="margin-top: 15px;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+              <thead>
+                <tr style="background: var(--bg); border-bottom: 2px solid var(--border2); color: var(--text2); font-size: 12px; text-transform: uppercase;">
+                  <th style="padding: 10px;">Date</th>
+                  <th style="padding: 10px;">Client</th>
+                  <th style="padding: 10px;">Type d'œuf</th>
+                  <th style="padding: 10px;">Qté</th>
+                  <th style="padding: 10px;">Montant</th>
+                  <th style="padding: 10px; text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tableau-ventes-body">
+                <!-- Rempli par JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Clients -->
+      <div id="poules-clients" class="sous-vue">
+        <div class="card">
+          <h2>👥 Classement des clients</h2>
+          <p style="color: var(--text2); font-size: 13px;">
+            <b>Indicateurs prévus :</b> Qui achète le plus, nombre de ventes, CA par personne, prix moyen, dernière vente, rang.
+          </p>
+        </div>
+      </div>
+
+      <!-- 6. Stock -->
+      <div id="poules-stock" class="sous-vue">
+        <div class="card">
+          <h2>📦 Mon Stock d'œufs actuel</h2>
+          <p style="font-size: 12px; color: var(--text2); margin-bottom: 15px;">Le stock se met à jour automatiquement avec tes pontes (et bientôt tes ventes et consommations).</p>
+          
+          <div class="table-wrap">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+              <thead>
+                <tr style="background-color: var(--card); border-bottom: 2px solid var(--border2); font-size: 12px; text-transform: uppercase;">
+                  <th style="padding: 12px;">Race / Catégorie</th>
+                  <th style="padding: 12px; text-align: center;">Stock Disponible</th>
+                </tr>
+              </thead>
+              <tbody id="tableau-stock-body">
+                <!-- Rempli par le JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Coûts -->
+      <div id="poules-couts" class="sous-vue">
+        
+        <div class="card">
+          <h2>💸 Enregistrer une dépense d'entretien</h2>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-top: 15px;">
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Date *</label><br>
+              <input type="date" id="cout-date" style="width: 130px;">
+            </div>
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Catégorie *</label><br>
+              <select id="cout-categorie" style="width: 150px;">
+                <option value="Nourriture">🌾 Nourriture</option>
+                <option value="Litière">🌿 Litière / Paille</option>
+                <option value="Santé">⚕️ Santé / Vétérinaire</option>
+                <option value="Autre">📦 Autre</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Montant (€) *</label><br>
+              <input type="number" id="cout-montant" value="15.00" step="0.5" min="0" style="width: 90px; font-weight: bold; color: var(--red);">
+            </div>
+            <div style="flex: 1; min-width: 150px;">
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Description</label><br>
+              <input type="text" id="cout-desc" placeholder="Ex: Sac de 20kg..." style="width: 100%;">
+            </div>
+            <div>
+              <button class="btn" id="btn-ajouter-cout" style="padding: 10px 20px;">Ajouter</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+          <h2>📉 Historique des dépenses courantes</h2>
+          <div class="table-wrap" style="margin-top: 15px;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+              <thead>
+                <tr style="background: var(--bg); border-bottom: 2px solid var(--border2); color: var(--text2); font-size: 12px; text-transform: uppercase;">
+                  <th style="padding: 10px;">Date</th>
+                  <th style="padding: 10px;">Catégorie</th>
+                  <th style="padding: 10px;">Description</th>
+                  <th style="padding: 10px;">Montant</th>
+                  <th style="padding: 10px; text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tableau-couts-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. Consommation -->
+      <div id="poules-conso" class="sous-vue">
+        
+        <!-- Boîte d'enregistrement -->
+        <div class="card">
+          <h2>🏠 Enregistrer une consommation personnelle</h2>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-top: 15px;">
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Date *</label><br>
+              <input type="date" id="conso-date" style="width: 130px;">
+            </div>
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Type d'œuf (Stock) *</label><br>
+              <select id="conso-race" style="width: 180px;">
+                <option value="">-- Choisir en stock --</option>
+                <!-- L'automate remplira ceci -->
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Qté *</label><br>
+              <input type="number" id="conso-qte" value="2" min="1" style="width: 60px;">
+            </div>
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Prix commerce/œuf (€)</label><br>
+              <input type="number" id="conso-prix" value="0.40" step="0.05" style="width: 120px;">
+            </div>
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Économie (€)</label><br>
+              <input type="text" id="conso-total" value="0.80" readonly style="width: 80px; background: var(--bg2); font-weight: bold; color: var(--green); border-color: var(--green);">
+            </div>
+            <div>
+              <button class="btn" id="btn-ajouter-conso" style="padding: 10px 20px;">Miam ! 🍳</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tableau d'historique -->
+        <div class="card" style="margin-top: 16px;">
+          <h2>🍽️ Historique des consommations</h2>
+          <div class="table-wrap" style="margin-top: 15px;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+              <thead>
+                <tr style="background: var(--bg); border-bottom: 2px solid var(--border2); color: var(--text2); font-size: 12px; text-transform: uppercase;">
+                  <th style="padding: 10px;">Date</th>
+                  <th style="padding: 10px;">Type d'œuf</th>
+                  <th style="padding: 10px;">Qté</th>
+                  <th style="padding: 10px;">Économie réalisée</th>
+                  <th style="padding: 10px; text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tableau-conso-body">
+                <!-- Rempli par JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9. Investissements -->
+      <div id="poules-invest" class="sous-vue">
+        
+        <div class="card">
+          <h2>🔧 Nouvel investissement matériel</h2>
+          <p style="font-size: 12px; color: var(--text2); margin-bottom: 15px;">Ce sont les achats durables (poulailler, clôture...) qui se rentabilisent sur plusieurs années.</p>
+          
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Date *</label><br>
+              <input type="date" id="invest-date" style="width: 130px;">
+            </div>
+            <div style="flex: 1; min-width: 150px;">
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Objet / Matériel *</label><br>
+              <input type="text" id="invest-objet" placeholder="Ex: Abreuvoir automatique..." style="width: 100%;">
+            </div>
+            <div>
+              <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Montant (€) *</label><br>
+              <input type="number" id="invest-montant" value="50.00" step="1" min="0" style="width: 100px; font-weight: bold; color: var(--blue);">
+            </div>
+            <div>
+              <button class="btn" id="btn-ajouter-invest" style="padding: 10px 20px;">Ajouter</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+          <h2>🏗️ Historique du matériel</h2>
+          <div class="table-wrap" style="margin-top: 15px;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+              <thead>
+                <tr style="background: var(--bg); border-bottom: 2px solid var(--border2); color: var(--text2); font-size: 12px; text-transform: uppercase;">
+                  <th style="padding: 10px;">Date</th>
+                  <th style="padding: 10px;">Matériel</th>
+                  <th style="padding: 10px;">Montant</th>
+                  <th style="padding: 10px; text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tableau-invest-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10. Rentabilité -->
+      <div id="poules-renta" class="sous-vue">
+        
+        <div class="card" style="background: linear-gradient(145deg, #ffffff, #fdf6ea);">
+          <h2>💰 Rentabilité Réelle de l'Élevage</h2>
+          <p style="font-size: 13px; color: var(--text2); margin-bottom: 15px;">
+            Contrairement au simulateur, ce bilan se base sur <b>tes vraies données</b> saisies dans l'application.
+          </p>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div style="background: #eaf2f9; padding: 12px; border-radius: 8px; border: 1px solid #d0e1f0;">
+              <div style="font-size: 11px; font-weight: bold; color: #5d8aa3; text-transform: uppercase;">Total des Ventes</div>
+              <div style="font-size: 20px; font-weight: 800; color: #5d8aa3;">+ <span id="reel-ventes">0.00</span> €</div>
+            </div>
+            
+            <div style="background: #eaf8ea; padding: 12px; border-radius: 8px; border: 1px solid #c2e2c3;">
+              <div style="font-size: 11px; font-weight: bold; color: #4a8c4b; text-transform: uppercase;">Économie (Autoconsommation)</div>
+              <div style="font-size: 20px; font-weight: 800; color: #4a8c4b;">+ <span id="reel-economie">0.00</span> €</div>
+            </div>
+
+            <div style="background: #f8ecec; padding: 12px; border-radius: 8px; border: 1px solid #e8d0d0; grid-column: 1 / -1;">
+              <div style="font-size: 11px; font-weight: bold; color: #a35d5d; text-transform: uppercase;">Coûts d'entretien (Nourriture, Santé, etc.)</div>
+              <div style="font-size: 20px; font-weight: 800; color: #a35d5d;">- <span id="reel-couts">0.00</span> €</div>
+            </div>
+
+            <div style="grid-column: 1 / -1; background: var(--green2); padding: 16px; border-radius: 8px; border: 1px solid #c3e2c2; text-align: center;">
+              <div style="font-size: 12px; font-weight: bold; color: var(--green); text-transform: uppercase;">Bénéfice d'exploitation (Valeur créée)</div>
+              <div style="font-size: 28px; font-weight: 800; color: var(--green);"><span id="reel-benefice">0.00</span> €</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="background: linear-gradient(145deg, #ffffff, #eaf2f9); margin-top: 16px;">
+          <h2>📉 Amortissement & ROI Réel</h2>
+          <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 15px;">
+            <div style="background: #f8ecec; padding: 12px; border-radius: 8px; border: 1px solid #e8d0d0;">
+              <div style="font-size: 11px; font-weight: bold; color: #a35d5d; text-transform: uppercase;">Investissements (Achat matériel & poules)</div>
+              <div style="font-size: 20px; font-weight: 800; color: #a35d5d;">- <span id="reel-invest">0.00</span> €</div>
+            </div>
+
+            <div style="background: var(--bg); padding: 16px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+              <div style="font-size: 12px; font-weight: bold; color: var(--text2); text-transform: uppercase;">Solde Net d'Amortissement</div>
+              <div style="font-size: 28px; font-weight: 800;" id="reel-solde-net">0.00 €</div>
+              <div id="reel-msg-roi" style="font-size: 13px; font-weight: bold; margin-top: 5px;"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 11. Sauvegarde -->
+      <div id="poules-sauvegarde" class="sous-vue">
+        <div class="card">
+          <h2>💾 Sauvegarde et Export</h2>
+          <p style="color: var(--text2); font-size: 13px;">
+            <b>Fonctions prévues :</b> Export des données en CSV, JSON, PDF. Import en CSV, JSON.
+          </p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================= -->
+    <!-- VUE 3 : LES PARAMÈTRES COMPLETS         -->
+    <!-- ======================================= -->
+    <section class="view" id="parametres">
+      <button class="btn-retour" onclick="retourAccueil()">⬅ Retour au menu principal</button>
+      
+      <!-- Carte Langue et Devise -->
+      <div class="card">
+        <h2>🌍 Langue et Devise</h2>
+        <div style="display: flex; gap: 15px; margin-top: 10px;">
+          <div>
+            <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Langue / Language</label><br>
+            <select id="lang-select" style="padding: 8px; border-radius: 8px; border: 1.5px solid var(--border2); margin-top: 5px;">
+              <option value="fr">🇫🇷 Français</option>
+              <option value="en">🇬🇧 English</option>
+              <option value="es">🇪🇸 Español</option>
+              <option value="de">🇩🇪 Deutsch</option>
+              <option value="it">🇮🇹 Italiano</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 12px; font-weight: bold; color: var(--text2);">Devise / Currency</label><br>
+            <select id="currency-select" style="padding: 8px; border-radius: 8px; border: 1.5px solid var(--border2); margin-top: 5px;">
+              <option value="EUR">€ Euro (EUR)</option>
+              <option value="USD">$ Dollar (USD)</option>
+              <option value="CAD">$ Canadien (CAD)</option>
+              <option value="AUD">$ Australien (AUD)</option>
+              <option value="GBP">£ Pound (GBP)</option>
+              <option value="CHF">Fr Franc Suisse (CHF)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Carte de sélection des modules -->
+      <div class="card">
+        <h2>⚙️ Configuration de ton exploitation</h2>
+        <p style="margin-bottom: 15px; color: var(--text2);">Coche uniquement les productions que tu possèdes pour adapter le menu :</p>
+        
+        <div style="line-height: 2;">
+          <label><input type="checkbox" id="mod-poules"> 🥚🐓 Poulailler & Ponte</label><br>
+          <label><input type="checkbox" id="mod-jardin"> 🌱🥕 Légumes du Jardin</label><br>
+          <label><input type="checkbox" id="mod-verger"> 🌳 Verger & Fruits</label><br>
+          <label><input type="checkbox" id="mod-elevage"> 🐕 Élevage d'Agrément & Race</label><br>
+          <label><input type="checkbox" id="mod-rucher"> 🍯🐝 Rucher & Apiculture</label><br>
+          <label><input type="checkbox" id="mod-viande"> 🦆🐇 Élevage & Viande</label><br>
+          <label><input type="checkbox" id="mod-laiterie"> 🧀🥛 Fromage & Laiterie</label><br>
+          <label><input type="checkbox" id="mod-pain"> 🍞🌾 Pain & Panification</label><br>
+          <label><input type="checkbox" id="mod-brasserie"> 🍺🌾 Brasserie Amateur</label><br>
+          <label><input type="checkbox" id="mod-champignons"> 🍄 Champignonnière</label><br>
+          <label><input type="checkbox" id="mod-plantes"> 🌿🫖 Plantes Aromatiques & Tisanes</label>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="db.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
