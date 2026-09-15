@@ -166,47 +166,162 @@ const tbodySim = document.getElementById('sim-table-body');
 const trEmpty = document.getElementById('sim-empty-row');
 const canvasDeclin = document.getElementById('canvas-declin');
 
+// Variable globale pour transmettre les prévisions à la page Rentabilité
+window.previsionsSimulateur = null; 
+
 function calculerBilanSimulateur() {
-  // --- 1. Lecture du Cheptel ---
-  let nbPoules = 0;
-  let productionOeufs = 0;
-  let esperanceMax = 0;
-  
   const lignes = tbodySim ? tbodySim.querySelectorAll('tr.sim-row') : [];
+  
+  let esperanceMax = 0;
   lignes.forEach(tr => {
-    nbPoules += parseInt(tr.dataset.qty) || 0;
-    productionOeufs += parseInt(tr.dataset.oeufs) || 0;
     const vie = parseInt(tr.dataset.vie) || 0;
-    if (vie > esperanceMax) esperanceMax = vie;
+    const anneeAchat = parseInt(tr.dataset.annee) || 1;
+    if ((anneeAchat + vie - 1) > esperanceMax) esperanceMax = (anneeAchat + vie - 1);
   });
 
-  if(document.getElementById('sim-total-qte')) document.getElementById('sim-total-qte').innerText = nbPoules;
-  if(document.getElementById('sim-total-oeufs')) document.getElementById('sim-total-oeufs').innerText = productionOeufs;
+  const updateSelect = (id) => {
+    const select = document.getElementById(id);
+    if (!select) return;
+    const oldVal = select.value;
+    let html = '<option value="moyenne">Moyenne Lissée</option>';
+    for (let i = 1; i <= esperanceMax; i++) { html += `<option value="${i}">Année ${i}</option>`; }
+    select.innerHTML = html;
+    if (select.querySelector(`option[value="${oldVal}"]`)) select.value = oldVal;
+  };
+  updateSelect('sim-bilan-annee');
+  updateSelect('comp-bilan-annee');
 
-  // --- 2. Calcul par Saison (40%, 30%, 20%, 10%) ---
-  const pTotal = Math.round(productionOeufs * 0.40);
-  const eTotal = Math.round(productionOeufs * 0.30);
-  const aTotal = Math.round(productionOeufs * 0.20);
-  const hTotal = Math.round(productionOeufs * 0.10);
+  let projsParAn = {};
+  for(let i = 1; i <= esperanceMax; i++) { projsParAn[i] = { poules: 0, oeufs: 0, p: 0, e: 0, a: 0, h: 0 }; }
   
-  // Mise à jour des grandes cases de la Boîte 4
-  if(document.getElementById('sim-saison-printemps')) document.getElementById('sim-saison-printemps').innerText = pTotal;
-  if(document.getElementById('sim-saison-ete')) document.getElementById('sim-saison-ete').innerText = eTotal;
-  if(document.getElementById('sim-saison-automne')) document.getElementById('sim-saison-automne').innerText = aTotal;
-  if(document.getElementById('sim-saison-hiver')) document.getElementById('sim-saison-hiver').innerText = hTotal;
+  let lotsPourGraphe = [];
+  let sommeOeufsTotale = 0, sommePoulesTotale = 0;
+  let sommeP = 0, sommeE = 0, sommeA = 0, sommeH = 0;
+
+  lignes.forEach(tr => {
+    const qte = parseInt(tr.dataset.qty) || 0;
+    const oeufsAn1 = parseInt(tr.dataset.oeufs) || 0;
+    const pBase = parseInt(tr.dataset.printemps) || 0;
+    const eBase = parseInt(tr.dataset.ete) || 0;
+    const aBase = parseInt(tr.dataset.automne) || 0;
+    const hBase = parseInt(tr.dataset.hiver) || 0;
+    const vie = parseInt(tr.dataset.vie) || 0;
+    const anneeAchat = parseInt(tr.dataset.annee) || 1;
+
+    let oeufsSurSaVie = 0, pVie = 0, eVie = 0, aVie = 0, hVie = 0;
+    
+    for (let i = 1; i <= vie; i++) {
+      let agePoule = i;
+      let anneeCalendrier = anneeAchat + i - 1;
+      let ratio = agePoule <= 2 ? 1 : 1 - ((agePoule - 2) * 0.15);
+      if (ratio < 0) ratio = 0;
+      
+      let production = Math.round(oeufsAn1 * ratio);
+      let prodP = Math.round(pBase * ratio);
+      let prodE = Math.round(eBase * ratio);
+      let prodA = Math.round(aBase * ratio);
+      let prodH = Math.round(hBase * ratio);
+      
+      oeufsSurSaVie += production;
+      pVie += prodP; eVie += prodE; aVie += prodA; hVie += prodH;
+
+      if(projsParAn[anneeCalendrier]) {
+        projsParAn[anneeCalendrier].poules += qte;
+        projsParAn[anneeCalendrier].oeufs += production;
+        projsParAn[anneeCalendrier].p += prodP;
+        projsParAn[anneeCalendrier].e += prodE;
+        projsParAn[anneeCalendrier].a += prodA;
+        projsParAn[anneeCalendrier].h += prodH;
+      }
+    }
+    sommeOeufsTotale += (vie > 0 ? oeufsSurSaVie / vie : 0);
+    sommeP += (vie > 0 ? pVie / vie : 0);
+    sommeE += (vie > 0 ? eVie / vie : 0);
+    sommeA += (vie > 0 ? aVie / vie : 0);
+    sommeH += (vie > 0 ? hVie / vie : 0);
+    
+    lotsPourGraphe.push({ oeufs: oeufsAn1, anneeAchat: anneeAchat, vie: vie, qte: qte });
+  });
+
+  for(let i = 1; i <= esperanceMax; i++) { sommePoulesTotale += projsParAn[i].poules; }
+  const moyenneOeufs = esperanceMax > 0 ? sommeOeufsTotale : 0;
+  const moyennePoules = esperanceMax > 0 ? (sommePoulesTotale / esperanceMax) : 0;
+
+  window.previsionsSimulateur = { projs: projsParAn, moyenneOeufs, moyennePoules, esperanceMax };
+
+  const choixAnnee = document.getElementById('sim-bilan-annee')?.value || "moyenne";
   
-  // Mise à jour du pied de tableau de la Boîte 3 (C'est ici que ça bloquait !)
-  const tdSaisons = document.getElementById('sim-total-saisons');
-  if (tdSaisons) {
-    tdSaisons.innerHTML = `🌸 ${pTotal} <br> ☀️ ${eTotal} <br> 🍂 ${aTotal} <br> ❄️ ${hTotal}`;
+  let poulesActives = 0, productionOeufs = 0;
+  let pTotal = 0, eTotal = 0, aTotal = 0, hTotal = 0;
+
+  if (choixAnnee === "moyenne") {
+    poulesActives = moyennePoules;
+    productionOeufs = Math.round(moyenneOeufs);
+    pTotal = Math.round(sommeP);
+    eTotal = Math.round(sommeE);
+    aTotal = Math.round(sommeA);
+    hTotal = Math.round(sommeH);
+  } else {
+    poulesActives = projsParAn[choixAnnee]?.poules || 0;
+    productionOeufs = projsParAn[choixAnnee]?.oeufs || 0;
+    pTotal = projsParAn[choixAnnee]?.p || 0;
+    eTotal = projsParAn[choixAnnee]?.e || 0;
+    aTotal = projsParAn[choixAnnee]?.a || 0;
+    hTotal = projsParAn[choixAnnee]?.h || 0;
   }
 
-  // --- 3. Lecture des Besoins du Foyer ---
+  // ---- LA NOUVELLE LOGIQUE DE COÛTS DE JORDAN ----
+  const valNourriture = parseFloat(document.getElementById('sim-input-nourriture')?.value) || 45;
+  const valLitiere = parseFloat(document.getElementById('sim-input-litiere')?.value) || 20;
+  const valSoins = parseFloat(document.getElementById('sim-input-soins')?.value) || 15;
+
+  let coutsParAn = {};
+  let sommeCoutsNourriture = 0, sommeCoutsLitiere = 0, sommeCoutsSoins = 0;
+
+  for(let i = 1; i <= esperanceMax; i++) {
+    let n = projsParAn[i].poules;
+    let cN = 0, cL = 0, cS = 0;
+    if (n > 0) {
+      cN = valNourriture * n;
+      cL = valLitiere + (8 * n);
+      if (i === 1) { 
+        cS = (valSoins + 10) + (5 * n);
+      } else {
+        cS = valSoins + (3 * n);
+      }
+    }
+    coutsParAn[i] = { cN, cL, cS, total: cN + cL + cS };
+    sommeCoutsNourriture += cN;
+    sommeCoutsLitiere += cL;
+    sommeCoutsSoins += cS;
+  }
+
+  let coutNourriture = 0, coutLitiere = 0, coutSoins = 0, entretienTotal = 0;
+  if (choixAnnee === "moyenne") {
+    if (esperanceMax > 0) {
+      coutNourriture = sommeCoutsNourriture / esperanceMax;
+      coutLitiere = sommeCoutsLitiere / esperanceMax;
+      coutSoins = sommeCoutsSoins / esperanceMax;
+      entretienTotal = coutNourriture + coutLitiere + coutSoins;
+    }
+  } else {
+    coutNourriture = coutsParAn[choixAnnee]?.cN || 0;
+    coutLitiere = coutsParAn[choixAnnee]?.cL || 0;
+    coutSoins = coutsParAn[choixAnnee]?.cS || 0;
+    entretienTotal = coutsParAn[choixAnnee]?.total || 0;
+  }
+  // ------------------------------------------------
+
+  if(document.getElementById('sim-total-qte')) document.getElementById('sim-total-qte').innerText = Math.round(poulesActives);
+  if(document.getElementById('sim-total-oeufs')) document.getElementById('sim-total-oeufs').innerText = productionOeufs;
+
+  const tdSaisons = document.getElementById('sim-total-saisons');
+  if (tdSaisons) tdSaisons.innerHTML = `🌸 ${pTotal} <br> ☀️ ${eTotal} <br> 🍂 ${aTotal} <br> ❄️ ${hTotal}`;
+
   const profilElem = document.getElementById('sim-profil');
   const profil = profilElem ? profilElem.value : '4';
   const nbPersonnes = parseInt(document.getElementById('sim-personnes')?.value) || 1;
   let oeufsParSemaine = 0;
-  
   const customConsoDiv = document.getElementById('sim-custom-conso-div');
   if (profil === 'custom') {
     if(customConsoDiv) customConsoDiv.style.display = 'block';
@@ -215,138 +330,102 @@ function calculerBilanSimulateur() {
     if(customConsoDiv) customConsoDiv.style.display = 'none';
     oeufsParSemaine = parseInt(profil) * nbPersonnes;
   }
-  const besoinsAnnuels = oeufsParSemaine * 52;
+  const besoinsAnnuels = (poulesActives > 0) ? (oeufsParSemaine * 52) : 0; 
 
- // --- 4. Calcul Financier & ROI ---
   const prixCommerce = parseFloat(document.getElementById('sim-prix')?.value) || 0;
   const prixVenteSurplus = parseFloat(document.getElementById('sim-prix-vente')?.value) || 0;
-  const coutEntretienBase = parseFloat(document.getElementById('sim-cout')?.value) || 87;
   const investissement = parseFloat(document.getElementById('sim-investissement')?.value) || 0;
 
-  // Calcul exact : Besoins Foyer x Prix commerce
   let economieBrute = besoinsAnnuels * prixCommerce; 
   let surplus = productionOeufs > besoinsAnnuels ? productionOeufs - besoinsAnnuels : 0;
   let ventesSurplus = surplus * prixVenteSurplus;
-  let totalEntretien = nbPoules * coutEntretienBase;
-  
-  let beneficeNet = economieBrute + ventesSurplus - totalEntretien;
+  let beneficeNet = economieBrute + ventesSurplus - entretienTotal;
+  let coutUnitaireOeuf = productionOeufs > 0 ? (entretienTotal / productionOeufs) : 0;
 
-  // Calcul du ROI (Taux et Temps)
-  let tauxROI = 0;
-  let tempsROI = "Jamais (Déficit)";
-
+  let tauxROI = 0; let tempsROI = "Jamais (Déficit)";
   if (investissement > 0 && beneficeNet > 0) {
     tauxROI = (beneficeNet / investissement) * 100;
     let annees = investissement / beneficeNet;
-    
-    if (annees < 1) {
-      // Si c'est moins d'un an, on affiche en mois
-      let mois = Math.ceil(annees * 12);
-      tempsROI = mois + " mois";
-    } else {
-      // Sinon on affiche en années (avec 1 chiffre après la virgule)
-      tempsROI = annees.toFixed(1) + " ans";
-    }
+    tempsROI = annees < 1 ? Math.ceil(annees * 12) + " mois" : annees.toFixed(1) + " ans";
   } else if (investissement === 0 && beneficeNet > 0) {
-    tauxROI = 100;
-    tempsROI = "Immédiat";
+    tauxROI = 100; tempsROI = "Immédiat";
   } else if (beneficeNet <= 0) {
-    tauxROI = 0;
-    tempsROI = "À perte";
+    tauxROI = 0; tempsROI = "À perte";
   }
 
-  // Mise à jour de l'affichage classique
   if(document.getElementById('res-besoins')) document.getElementById('res-besoins').innerText = besoinsAnnuels;
   if(document.getElementById('res-production')) document.getElementById('res-production').innerText = productionOeufs;
   if(document.getElementById('res-economie-brute')) document.getElementById('res-economie-brute').innerText = economieBrute.toFixed(2);
   if(document.getElementById('res-surplus')) document.getElementById('res-surplus').innerText = surplus;
   if(document.getElementById('res-ventes')) document.getElementById('res-ventes').innerText = ventesSurplus.toFixed(2);
-  if(document.getElementById('res-cout-total')) document.getElementById('res-cout-total').innerText = totalEntretien.toFixed(2);
+  if(document.getElementById('res-cout-total')) document.getElementById('res-cout-total').innerText = entretienTotal.toFixed(2);
+  if(document.getElementById('res-cout-oeuf')) document.getElementById('res-cout-oeuf').innerText = coutUnitaireOeuf.toFixed(2);
   if(document.getElementById('res-economie-nette')) document.getElementById('res-economie-nette').innerText = beneficeNet.toFixed(2);
-
-  // Mise à jour de l'affichage ROI
   if(document.getElementById('res-taux-roi')) document.getElementById('res-taux-roi').innerText = tauxROI.toFixed(1);
   if(document.getElementById('res-temps-roi')) document.getElementById('res-temps-roi').innerText = tempsROI;
 
-  // --- 5. Tableau Vert (Coûts d'entretien) ---
-  const santeUnitaire = 15; 
-  const delta = coutEntretienBase - 87; 
-  let nourritureUnitaire = Math.max(0, 48 + delta * (4 / 9));
-  let litiereUnitaire = Math.max(0, 24 + delta * (5 / 9));
+  if(document.getElementById('sim-cout-nourriture')) document.getElementById('sim-cout-nourriture').innerText = coutNourriture.toFixed(2);
+  if(document.getElementById('sim-cout-litiere')) document.getElementById('sim-cout-litiere').innerText = coutLitiere.toFixed(2);
+  if(document.getElementById('sim-cout-sante')) document.getElementById('sim-cout-sante').innerText = coutSoins.toFixed(2);
+  if(document.getElementById('sim-cout-total2')) document.getElementById('sim-cout-total2').innerText = entretienTotal.toFixed(2);
 
-  if(document.getElementById('sim-cout-nourriture')) document.getElementById('sim-cout-nourriture').innerText = (nourritureUnitaire * nbPoules).toFixed(2);
-  if(document.getElementById('sim-cout-litiere')) document.getElementById('sim-cout-litiere').innerText = (litiereUnitaire * nbPoules).toFixed(2);
-  if(document.getElementById('sim-cout-sante')) document.getElementById('sim-cout-sante').innerText = (santeUnitaire * nbPoules).toFixed(2);
-  if(document.getElementById('sim-cout-total2')) document.getElementById('sim-cout-total2').innerText = totalEntretien.toFixed(2);
+  let coutParPoule = poulesActives > 0 ? (entretienTotal / poulesActives) : 0;
+  if (document.getElementById('sim-cout-par-poule')) document.getElementById('sim-cout-par-poule').innerText = coutParPoule.toFixed(2);
 
-  // --- 6. Graphique ---
-  dessinerGraphiqueDeclin(productionOeufs, esperanceMax);
+  dessinerGraphiqueDeclin(lotsPourGraphe, esperanceMax);
+  sauvegarderSimulateur();
 }
 
-// Fonction pour dessiner le graphique
-function dessinerGraphiqueDeclin(productionInitiale, annees) {
+function dessinerGraphiqueDeclin(lots, anneesTotal) {
   if (!canvasDeclin) return;
   const ctx = canvasDeclin.getContext('2d');
-  
-  // On efface l'ancien dessin
   ctx.clearRect(0, 0, canvasDeclin.width, canvasDeclin.height);
-  
-  if (productionInitiale === 0 || annees === 0) return;
+  if (lots.length === 0 || anneesTotal === 0) return;
 
   const padding = 40;
   const largeurGraphe = canvasDeclin.width - padding * 2;
   const hauteurGraphe = canvasDeclin.height - padding * 2;
 
-  // Calcul du déclin (100% ans 1 et 2, puis -15% par an)
-  let donnees = [];
-  for (let i = 1; i <= annees; i++) {
-    let ratio = i <= 2 ? 1 : 1 - ((i - 2) * 0.15);
-    if (ratio < 0) ratio = 0;
-    donnees.push(Math.round(productionInitiale * ratio));
+  let donnees = []; let maxVal = 0;
+
+  for (let y = 1; y <= anneesTotal; y++) {
+    let totalOeufsAnnee = 0;
+    lots.forEach(lot => {
+      if (y >= lot.anneeAchat && y < (lot.anneeAchat + lot.vie)) {
+        let agePoule = y - lot.anneeAchat + 1;
+        let ratio = agePoule <= 2 ? 1 : 1 - ((agePoule - 2) * 0.15);
+        if (ratio < 0) ratio = 0;
+        totalOeufsAnnee += Math.round(lot.oeufs * ratio);
+      }
+    });
+    donnees.push(totalOeufsAnnee);
+    if (totalOeufsAnnee > maxVal) maxVal = totalOeufsAnnee;
   }
 
-  const maxVal = productionInitiale * 1.1; // Pour ne pas coller au plafond
+  maxVal = maxVal * 1.1 || 100;
 
-  // Dessin des axes
   ctx.beginPath();
   ctx.moveTo(padding, padding);
   ctx.lineTo(padding, canvasDeclin.height - padding);
   ctx.lineTo(canvasDeclin.width - padding, canvasDeclin.height - padding);
   ctx.strokeStyle = '#e0cc9d';
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  ctx.lineWidth = 2; ctx.stroke();
 
-  // Dessin de la ligne
   ctx.beginPath();
   donnees.forEach((valeur, index) => {
-    const x = padding + (index * (largeurGraphe / (annees - 1 || 1)));
+    const x = padding + (index * (largeurGraphe / (anneesTotal - 1 || 1)));
     const y = (canvasDeclin.height - padding) - ((valeur / maxVal) * hauteurGraphe);
-    
-    if (index === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+    if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   });
-  ctx.strokeStyle = '#e8a33d';
-  ctx.lineWidth = 4;
-  ctx.stroke();
+  ctx.strokeStyle = '#e8a33d'; ctx.lineWidth = 4; ctx.stroke();
 
-  // Dessin des points et du texte
   donnees.forEach((valeur, index) => {
-    const x = padding + (index * (largeurGraphe / (annees - 1 || 1)));
+    const x = padding + (index * (largeurGraphe / (anneesTotal - 1 || 1)));
     const y = (canvasDeclin.height - padding) - ((valeur / maxVal) * hauteurGraphe);
-    
-    // Le point
-    ctx.beginPath();
-    ctx.arc(x, y, 6, 0, Math.PI * 2);
-    ctx.fillStyle = '#c9863f';
-    ctx.fill();
-
-    // Le texte de la valeur (nb œufs) au-dessus
-    ctx.fillStyle = '#4a3728';
-    ctx.font = 'bold 12px Nunito, sans-serif';
-    ctx.textAlign = 'center';
+    ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#c9863f'; ctx.fill();
+    ctx.fillStyle = '#4a3728'; ctx.font = 'bold 12px Nunito, sans-serif'; ctx.textAlign = 'center';
     ctx.fillText(valeur, x, y - 15);
-
-    // L'année en bas
     ctx.fillText('An ' + (index + 1), x, canvasDeclin.height - padding + 20);
   });
 }
@@ -359,41 +438,48 @@ if (btnAddRace) {
     const option = select.options[select.selectedIndex];
     const qty = parseInt(document.getElementById('sim-race-qty').value) || 1;
     
-    // Extraction des attributs HTML
     const ponte = parseInt(option.getAttribute('data-ponte'));
+    const pBase = parseInt(option.getAttribute('data-printemps'));
+    const eBase = parseInt(option.getAttribute('data-ete'));
+    const aBase = parseInt(option.getAttribute('data-automne'));
+    const hBase = parseInt(option.getAttribute('data-hiver'));
     const vie = parseInt(option.getAttribute('data-vie'));
     const couleurText = option.getAttribute('data-couleur');
     const codeCouleur = option.getAttribute('data-codecouleur');
+    const poids = option.getAttribute('data-poids');
     
     const nomRace = option.text.split(' (')[0];
     const totalOeufsRace = qty * ponte;
 
     if(trEmpty) trEmpty.style.display = 'none';
 
-    // Création de la ligne avec bouton supprimer
     const tr = document.createElement('tr');
     tr.className = 'sim-row';
     tr.dataset.qty = qty;
     tr.dataset.oeufs = totalOeufsRace;
+    tr.dataset.printemps = qty * pBase;
+    tr.dataset.ete = qty * eBase;
+    tr.dataset.automne = qty * aBase;
+    tr.dataset.hiver = qty * hBase;
     tr.dataset.vie = vie;
-    
-    // Calcul des saisons pour cette ligne
-    const p = Math.round(totalOeufsRace * 0.40);
-    const e = Math.round(totalOeufsRace * 0.30);
-    const a = Math.round(totalOeufsRace * 0.20);
-    const h = Math.round(totalOeufsRace * 0.10);
+    tr.dataset.poids = poids;
+
+    const anneeAchat = parseInt(document.getElementById('sim-race-annee').value) || 0;
+    tr.dataset.annee = anneeAchat; 
 
     tr.innerHTML = `
+      <td style="padding: 10px;">An ${anneeAchat}</td>
       <td style="padding: 10px;"><b>${qty}</b></td>
       <td style="padding: 10px;"><b>${nomRace}</b></td>
       <td style="padding: 10px; font-weight:bold; color:var(--accent-dark);">${totalOeufsRace}</td>
       <td style="padding: 10px; font-size:11px; color:var(--text2); line-height: 1.4;">
-        🌸 ${p} <br> ☀️ ${e} <br> 🍂 ${a} <br> ❄️ ${h}
+        🌸 ${qty * pBase} <br> ☀️ ${qty * eBase} <br> 🍂 ${qty * aBase} <br> ❄️ ${qty * hBase}
       </td>
       <td style="padding: 10px;">
         <span style="display:inline-block; width:12px; height:12px; background:${codeCouleur}; border-radius:50%; border:1px solid #ccc; vertical-align:middle; margin-right:5px;"></span>
         <span style="font-size:12px;">${couleurText}</span>
       </td>
+      <td style="padding: 10px; font-size:12px; font-weight:bold;">${poids} g</td>
       <td style="padding: 10px; font-size:12px;">${vie} ans</td>
       <td style="padding: 10px; text-align:right;">
         <button class="btn-danger btn-sm" onclick="this.closest('tr').remove(); calculerBilanSimulateur();">X</button>
@@ -413,8 +499,7 @@ if (btnClearSim) {
   });
 }
 
-// Mise à jour en direct lors de la saisie
-const champsFinances = ['sim-personnes', 'sim-profil', 'sim-custom-conso', 'sim-prix', 'sim-prix-vente', 'sim-cout', 'sim-investissement'];
+const champsFinances = ['sim-personnes', 'sim-profil', 'sim-custom-conso', 'sim-prix', 'sim-prix-vente', 'sim-input-nourriture', 'sim-input-litiere', 'sim-input-soins', 'sim-investissement'];
 champsFinances.forEach(id => {
   const champ = document.getElementById(id);
   if (champ) {
@@ -441,7 +526,6 @@ if (selectPoule && inputCouleur) {
     const optionChoisie = selectPoule.options[selectPoule.selectedIndex];
     
     if (optionChoisie && optionChoisie.value !== "") {
-      // On va chercher la donnée cachée dans l'option (ex: Chocolat)
       inputCouleur.value = optionChoisie.getAttribute('data-couleur');
     } else {
       inputCouleur.value = "";
@@ -485,8 +569,6 @@ if (btnAjouterPonte) {
 
     if (typeof ajouterPonteDB === 'function') {
       ajouterPonteDB(nouvellePonte);
-      
-      // On vide juste la quantité et le com
       document.getElementById('ponte-qte').value = 1;
       document.getElementById('ponte-commentaire').value = '';
     }
@@ -526,6 +608,7 @@ if (btnAjouterVente) {
     const typeOeuf = document.getElementById('vente-race').value;
     const qte = parseInt(document.getElementById('vente-qte').value) || 0;
     const total = parseFloat(document.getElementById('vente-total').value) || 0;
+    const com = document.getElementById('vente-commentaire').value.trim();
 
     if (client === "") { alert("Le nom du client est obligatoire."); return; }
     if (typeOeuf === "") { alert("Veuillez choisir quel type d'œuf vous vendez depuis le stock."); return; }
@@ -536,15 +619,15 @@ if (btnAjouterVente) {
       client: client,
       typeOeuf: typeOeuf,
       quantite: qte,
-      total: total
+      total: total,
+      commentaire: com 
     };
 
     if (typeof ajouterVenteDB === 'function') {
       ajouterVenteDB(nouvelleVente);
-      
-      // On vide le client et on remet à 6 œufs par défaut
       document.getElementById('vente-client').value = '';
       document.getElementById('vente-qte').value = 6;
+      document.getElementById('vente-commentaire').value = '';
       calculerTotalVente();
     }
   });
@@ -557,7 +640,6 @@ if (btnAjouterVente) {
 const inputConsoDate = document.getElementById('conso-date');
 if(inputConsoDate) inputConsoDate.valueAsDate = new Date();
 
-// Calcul automatique de l'économie réalisée
 const inputConsoQte = document.getElementById('conso-qte');
 const inputConsoPrix = document.getElementById('conso-prix');
 const inputConsoTotal = document.getElementById('conso-total');
@@ -573,7 +655,6 @@ function calculerTotalConso() {
 if (inputConsoQte) inputConsoQte.addEventListener('input', calculerTotalConso);
 if (inputConsoPrix) inputConsoPrix.addEventListener('input', calculerTotalConso);
 
-// Enregistrer la consommation
 const btnAjouterConso = document.getElementById('btn-ajouter-conso');
 if (btnAjouterConso) {
   btnAjouterConso.addEventListener('click', () => {
@@ -582,6 +663,7 @@ if (btnAjouterConso) {
     const typeOeuf = document.getElementById('conso-race').value;
     const qte = parseInt(document.getElementById('conso-qte').value) || 0;
     const economie = parseFloat(document.getElementById('conso-total').value) || 0;
+    const com = document.getElementById('conso-commentaire').value.trim();
 
     if (typeOeuf === "") { alert("Veuillez choisir quel type d'œuf vous consommez depuis le stock."); return; }
     if (qte <= 0) { alert("La quantité doit être supérieure à 0."); return; }
@@ -590,14 +672,14 @@ if (btnAjouterConso) {
       date: date,
       typeOeuf: typeOeuf,
       quantite: qte,
-      economie: economie
+      economie: economie,
+      commentaire: com 
     };
 
     if (typeof ajouterConsoDB === 'function') {
       ajouterConsoDB(nouvelleConso);
-      
-      // On remet à 2 œufs par défaut (pour la prochaine omelette !)
       document.getElementById('conso-qte').value = 2;
+      document.getElementById('conso-commentaire').value = '';
       calculerTotalConso();
     }
   });
@@ -621,7 +703,7 @@ if (btnAjouterCout) {
 
     if (typeof ajouterCoutDB === 'function') {
       ajouterCoutDB({ date: date, categorie: categorie, montant: montant, description: desc });
-      document.getElementById('cout-desc').value = ''; // On vide juste la description
+      document.getElementById('cout-desc').value = ''; 
     }
   });
 }
@@ -636,6 +718,7 @@ const btnAjouterInvest = document.getElementById('btn-ajouter-invest');
 if (btnAjouterInvest) {
   btnAjouterInvest.addEventListener('click', () => {
     const date = document.getElementById('invest-date').value;
+    const categorie = document.getElementById('invest-categorie').value; 
     const objet = document.getElementById('invest-objet').value.trim();
     const montant = parseFloat(document.getElementById('invest-montant').value) || 0;
 
@@ -643,7 +726,7 @@ if (btnAjouterInvest) {
     if (montant <= 0) { alert("Le montant doit être supérieur à 0."); return; }
 
     if (typeof ajouterInvestDB === 'function') {
-      ajouterInvestDB({ date: date, objet: objet, montant: montant });
+      ajouterInvestDB({ date: date, categorie: categorie, objet: objet, montant: montant });
       document.getElementById('invest-objet').value = '';
     }
   });
@@ -653,22 +736,236 @@ if (btnAjouterInvest) {
 // 12. ACTIONS : RAFRAÎCHISSEMENT DE LA RENTABILITÉ RÉELLE
 // =====================================================================
 
-// On repère le bouton de l'onglet Rentabilité
 const btnOngletRenta = document.querySelector('[data-cible="poules-renta"]');
 
 if (btnOngletRenta) {
   btnOngletRenta.addEventListener('click', () => {
-    // À chaque fois qu'on clique dessus, on demande à la base de données de recalculer
     if (typeof calculerRentabiliteReelleDB === 'function') {
       calculerRentabiliteReelleDB();
     }
   });
 }
 
-// On force aussi le calcul une fois au démarrage de l'appli au cas où
 window.addEventListener('load', () => {
   if (typeof calculerRentabiliteReelleDB === 'function') {
-    // On met un petit délai de 1 seconde pour être sûr que la base est bien connectée
     setTimeout(calculerRentabiliteReelleDB, 1000); 
+  }
+});
+
+const selectSimBilan = document.getElementById('sim-bilan-annee');
+if (selectSimBilan) selectSimBilan.addEventListener('change', calculerBilanSimulateur);
+
+const selectCompBilan = document.getElementById('comp-bilan-annee');
+if (selectCompBilan) selectCompBilan.addEventListener('change', () => {
+  if (typeof calculerRentabiliteReelleDB === 'function') calculerRentabiliteReelleDB();
+});
+
+const filterReelDebut = document.getElementById('comp-reel-debut');
+const filterReelFin = document.getElementById('comp-reel-fin');
+const filterReelMode = document.getElementById('comp-reel-mode');
+if (filterReelDebut) filterReelDebut.addEventListener('change', calculerRentabiliteReelleDB);
+if (filterReelFin) filterReelFin.addEventListener('change', calculerRentabiliteReelleDB);
+if (filterReelMode) filterReelMode.addEventListener('change', calculerRentabiliteReelleDB);
+
+// =====================================================================
+// MÉMOIRE DU SIMULATEUR (SAUVEGARDE LOCALE)
+// =====================================================================
+function sauvegarderSimulateur() {
+  const tbodySim = document.getElementById('sim-table-body');
+  const state = {
+    personnes: document.getElementById('sim-personnes')?.value,
+    profil: document.getElementById('sim-profil')?.value,
+    customConso: document.getElementById('sim-custom-conso')?.value,
+    prix: document.getElementById('sim-prix')?.value,
+    prixVente: document.getElementById('sim-prix-vente')?.value,
+    nourriture: document.getElementById('sim-input-nourriture')?.value,
+    litiere: document.getElementById('sim-input-litiere')?.value,
+    soins: document.getElementById('sim-input-soins')?.value,
+    investissement: document.getElementById('sim-investissement')?.value,
+    lignes: []
+  };
+
+  if (tbodySim) {
+    const rows = tbodySim.querySelectorAll('tr.sim-row');
+    rows.forEach(tr => {
+      state.lignes.push({
+        qty: tr.dataset.qty,
+        oeufs: tr.dataset.oeufs,
+        printemps: tr.dataset.printemps,
+        ete: tr.dataset.ete,
+        automne: tr.dataset.automne,
+        hiver: tr.dataset.hiver,
+        vie: tr.dataset.vie,
+        annee: tr.dataset.annee,
+        poids: tr.dataset.poids,
+        html: tr.innerHTML
+      });
+    });
+  }
+  localStorage.setItem('simState', JSON.stringify(state));
+}
+
+function chargerSimulateur() {
+  const saved = localStorage.getItem('simState');
+  if (saved) {
+    const state = JSON.parse(saved);
+    if (state.personnes) document.getElementById('sim-personnes').value = state.personnes;
+    if (state.profil) document.getElementById('sim-profil').value = state.profil;
+    if (state.customConso) document.getElementById('sim-custom-conso').value = state.customConso;
+    if (state.prix) document.getElementById('sim-prix').value = state.prix;
+    if (state.prixVente) document.getElementById('sim-prix-vente').value = state.prixVente;
+    if (state.nourriture) document.getElementById('sim-input-nourriture').value = state.nourriture;
+    if (state.litiere) document.getElementById('sim-input-litiere').value = state.litiere;
+    if (state.soins) document.getElementById('sim-input-soins').value = state.soins;
+    if (state.investissement) document.getElementById('sim-investissement').value = state.investissement;
+
+    if (state.lignes && state.lignes.length > 0) {
+      const tbody = document.getElementById('sim-table-body');
+      const trEmpty = document.getElementById('sim-empty-row');
+      if (trEmpty) trEmpty.style.display = 'none';
+      
+      tbody.querySelectorAll('tr.sim-row').forEach(tr => tr.remove());
+
+      state.lignes.forEach(l => {
+        const tr = document.createElement('tr');
+        tr.className = 'sim-row';
+        tr.dataset.qty = l.qty;
+        tr.dataset.oeufs = l.oeufs;
+        tr.dataset.printemps = l.printemps;
+        tr.dataset.ete = l.ete;
+        tr.dataset.automne = l.automne;
+        tr.dataset.hiver = l.hiver;
+        tr.dataset.vie = l.vie;
+        tr.dataset.annee = l.annee;
+        tr.dataset.poids = l.poids;
+        tr.innerHTML = l.html;
+        tbody.appendChild(tr);
+      });
+    }
+  }
+  calculerBilanSimulateur(); 
+}
+
+window.addEventListener('load', chargerSimulateur);
+
+// =====================================================================
+// ÉCOUTEURS DES FILTRES (Mise à jour en temps réel)
+// =====================================================================
+const configsFiltres = [
+  { prefix: 'ponte', btnRef: afficherPontesDB },
+  { prefix: 'vente', btnRef: afficherVentesDB },
+  { prefix: 'cout', btnRef: afficherCoutsDB },
+  { prefix: 'conso', btnRef: afficherConsoDB },
+  { prefix: 'invest', btnRef: afficherInvestDB }
+];
+
+configsFiltres.forEach(c => {
+  const inputs = document.querySelectorAll(`[id^="filt-${c.prefix}-"]`);
+  inputs.forEach(input => {
+    if (input.id.includes('reset')) {
+      input.addEventListener('click', () => {
+        inputs.forEach(i => { if (i.type !== 'button') i.value = ''; });
+        c.btnRef(); // Actualise le tableau
+      });
+    } else {
+      input.addEventListener('input', c.btnRef);
+    }
+  });
+});
+
+// =====================================================================
+// SAUVEGARDE & EXPORT CSV / JSON
+// =====================================================================
+function genererCSV(data, filename) {
+  if (data.length === 0) { alert("Aucune donnée à exporter !"); return; }
+  const headers = Object.keys(data[0]).join(';');
+  const rows = data.map(obj => Object.values(obj).map(val => `"${(val||'').toString().replace(/"/g, '""')}"`).join(';'));
+  const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...rows].join("\n");
+  
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", filename + "_" + new Date().toISOString().split('T')[0] + ".csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function exporterTableCSV(storeName) {
+  if (!db) return;
+  db.transaction([storeName], 'readonly').objectStore(storeName).getAll().onsuccess = (e) => {
+    genererCSV(e.target.result, `Export_${storeName}`);
+  };
+}
+
+// Boutons CSV
+document.getElementById('btn-export-csv-pontes')?.addEventListener('click', () => exporterTableCSV('pontes'));
+document.getElementById('btn-export-csv-ventes')?.addEventListener('click', () => exporterTableCSV('ventes'));
+document.getElementById('btn-export-csv-couts')?.addEventListener('click', () => exporterTableCSV('couts'));
+document.getElementById('btn-export-csv-conso')?.addEventListener('click', () => exporterTableCSV('consommations'));
+document.getElementById('btn-export-csv-invest')?.addEventListener('click', () => exporterTableCSV('investissements'));
+
+// Sauvegarde JSON (Backup complet)
+document.getElementById('btn-export-json')?.addEventListener('click', () => {
+  if (!db) return;
+  const storeNames = ['poules', 'pontes', 'ventes', 'consommations', 'couts', 'investissements'];
+  const backupData = {};
+  let storesCompleted = 0;
+
+  const t = db.transaction(storeNames, 'readonly');
+  storeNames.forEach(store => {
+    t.objectStore(store).getAll().onsuccess = (e) => {
+      backupData[store] = e.target.result;
+      storesCompleted++;
+      if (storesCompleted === storeNames.length) {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+        const link = document.createElement("a");
+        link.setAttribute("href", dataStr);
+        link.setAttribute("download", "Sauvegarde_Ferme_" + new Date().toISOString().split('T')[0] + ".json");
+        link.click();
+      }
+    };
+  });
+});
+
+// Import JSON
+document.getElementById('input-import-json')?.addEventListener('change', (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (confirm("Attention, cela va écraser vos données actuelles. Continuer ?")) {
+        const storeNames = Object.keys(data);
+        const t = db.transaction(storeNames, 'readwrite');
+        storeNames.forEach(store => {
+          const os = t.objectStore(store);
+          os.clear().onsuccess = () => {
+            data[store].forEach(item => os.add(item));
+          };
+        });
+        t.oncomplete = () => {
+          alert("Importation réussie ! L'application va se recharger.");
+          location.reload();
+        };
+      }
+    } catch (err) {
+      alert("Fichier JSON invalide.");
+    }
+  };
+  reader.readAsText(file);
+});
+
+// ZONE DE DANGER : RESET
+document.getElementById('btn-reset-db')?.addEventListener('click', () => {
+  if (confirm("🚨 ATTENTION ! Tu es sur le point de SUPPRIMER DÉFINITIVEMENT toutes les données de ton navigateur. Es-tu absolument sûr de vouloir tout effacer ?")) {
+    if (confirm("Es-tu vraiment sûr ? Cette action est IRRÉVERSIBLE !")) {
+      indexedDB.deleteDatabase("MyPreciousFarmDB");
+      localStorage.clear();
+      alert("Base de données effacée. L'application va se réinitialiser.");
+      location.reload();
+    }
   }
 });
