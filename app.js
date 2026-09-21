@@ -969,3 +969,50 @@ document.getElementById('btn-reset-db')?.addEventListener('click', () => {
     }
   }
 });
+
+// =====================================================================
+// GESTION DES PARAMÈTRES D'AFFICHAGE (PERFORMANCES MOBILE)
+// =====================================================================
+const configGraphs = [
+  { idCfg: 'cfg-graph-prod', idCard: 'card-graph-prod' },
+  { idCfg: 'cfg-graph-depenses', idCard: 'card-graph-depenses' },
+  { idCfg: 'cfg-graph-txponte', idCard: 'card-graph-txponte' },
+  { idCfg: 'cfg-graph-perf', idCard: 'card-graph-perf' }, // NOUVEAU
+  { idCfg: 'cfg-graph-age', idCard: 'card-graph-age' },             // NOUVEAU
+  { idCfg: 'cfg-graph-cout-oeuf', idCard: 'card-graph-cout-oeuf' },  // NOUVEAU
+  { idCfg: 'cfg-graph-bilan-mois', idCard: 'card-graph-bilan-mois' }, // NOUVEAU
+  { idCfg: 'cfg-graph-bilan-an', idCard: 'card-graph-bilan-an' },      // NOUVEAU
+  { idCfg: 'cfg-graph-stock', idCard: 'card-graph-stock' },       // NOUVEAU
+  { idCfg: 'cfg-graph-heatmap', idCard: 'card-graph-heatmap' }    // NOUVEAU
+];
+
+function initialiserParametresAffichage() {
+  configGraphs.forEach(graph => {
+    const checkbox = document.getElementById(graph.idCfg);
+    const card = document.getElementById(graph.idCard);
+    
+    if (!checkbox || !card) return;
+
+    // 1. Charger l'état depuis la mémoire
+    const etatSauvegarde = localStorage.getItem(graph.idCfg);
+    if (etatSauvegarde !== null) {
+      checkbox.checked = (etatSauvegarde === 'true');
+    }
+
+    // 2. Appliquer l'affichage initial au chargement de la page
+    card.style.display = checkbox.checked ? 'block' : 'none';
+
+    // 3. Sauvegarder et masquer/afficher en direct quand on clique
+    checkbox.addEventListener('change', () => {
+      localStorage.setItem(graph.idCfg, checkbox.checked);
+      card.style.display = checkbox.checked ? 'block' : 'none';
+      
+      // Si on rallume un graphique, on relance les calculs pour le dessiner
+      if (checkbox.checked && typeof actualiserDashboardPoules === 'function') {
+        actualiserDashboardPoules();
+      }
+    });
+  });
+}
+
+window.addEventListener('load', initialiserParametresAffichage);

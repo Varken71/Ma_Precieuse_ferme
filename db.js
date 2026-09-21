@@ -613,8 +613,10 @@ function calculerRentabiliteReelleDB() {
 // =====================================================================
 // FONCTIONS : DASHBOARD ET GRAPHIQUES (CHART.JS)
 // =====================================================================
-let chartProd = null; // Mémoire pour le graphique de production
-let chartDep = null;  // Mémoire pour le graphique des dépenses
+let chartProd = null; 
+let chartDep = null;  
+let chartTxPonte = null; 
+let chartPerf = null; 
 
 function actualiserDashboardPoules() {
   // On lit absolument toute la base d'un coup
@@ -631,7 +633,7 @@ function actualiserDashboardPoules() {
   t.oncomplete = () => {
     // --- 1. MAJ des 3 chiffres clés (Haut de page) ---
     let nbPoules = 0;
-    poules.forEach(p => { if (p.statut !== 'Décédée') nbPoules++; });
+    poules.forEach(p => { if (p.statut !== 'Décédée' && p.statut !== 'Décédé') nbPoules++; });
     
     let totalValeur = 0;
     ventes.forEach(v => totalValeur += v.total);
@@ -652,7 +654,7 @@ function actualiserDashboardPoules() {
 
     const ctxDep = document.getElementById('chart-depenses');
     if (ctxDep) {
-      if (chartDep) chartDep.destroy(); // On efface l'ancien graphique s'il existe
+      if (chartDep) chartDep.destroy();
       chartDep = new Chart(ctxDep, {
         type: 'doughnut',
         data: {
@@ -676,7 +678,6 @@ function actualiserDashboardPoules() {
     const moisNoms = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"];
     let statsMois = {};
     
-    // On génère la liste des 6 derniers mois (pour l'axe horizontal)
     for(let i = 5; i >= 0; i--) {
         let d = new Date();
         d.setMonth(d.getMonth() - i);
@@ -685,7 +686,6 @@ function actualiserDashboardPoules() {
         statsMois[cle] = { label: label, prod: 0, ventes: 0, consos: 0 };
     }
 
-    // On classe les données dans les bons mois
     pontes.forEach(p => { let cle = p.date.substring(0, 7); if(statsMois[cle]) statsMois[cle].prod += p.quantite; });
     ventes.forEach(v => { let cle = v.date.substring(0, 7); if(statsMois[cle]) statsMois[cle].ventes += v.quantite; });
     consos.forEach(c => { let cle = c.date.substring(0, 7); if(statsMois[cle]) statsMois[cle].consos += c.quantite; });
@@ -715,5 +715,593 @@ function actualiserDashboardPoules() {
         }
       });
     }
-  };
-}
+
+    // --- 4. GRAPHIQUE TAUX DE PONTE (30 Jours) ---
+    const checkTxPonte = document.getElementById('cfg-graph-txponte');
+    
+    if (checkTxPonte && checkTxPonte.checked) {
+      const tauxQuotidien = [];
+      const labels30 = [];
+      
+      for (let i = 29; i >= 0; i--) {
+        let d = new Date();
+        d.setDate(d.getDate() - i);
+        let dateStr = d.toISOString().split('T')[0];
+        
+        let poulesActivesJour = 0;
+        poules.forEach(p => {
+          let dateArr = p.dateArrivee ? p.dateArrivee : "1970-01-01"; 
+          if (dateArr <= dateStr && p.statut !== 'Décédé' && p.statut !== 'Réforme') {
+            poulesActivesJour++;
+          }
+        });
+        
+        let oeufsJour = 0;
+        pontes.forEach(p => {
+          if (p.date === dateStr) oeufsJour += p.quantite;
+        });
+        
+        let taux = poulesActivesJour > 0 ? (oeufsJour / poulesActivesJour) * 100 : 0;
+        if (taux > 100) taux = 100; 
+        
+        labels30.push(d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
+        tauxQuotidien.push(taux);
+      }
+      
+      const moyenne7j = [];
+      for (let i = 0; i < tauxQuotidien.length; i++) {
+        if (i < 6) {
+          moyenne7j.push(null); 
+        } else {
+          let somme = 0;
+          for (let j = 0; j < 7; j++) {
+            somme += tauxQuotidien[i - j];
+          }
+          moyenne7j.push(somme / 7);
+        }
+      }
+      
+      const tauxAujourdhui = tauxQuotidien[tauxQuotidien.length - 1];
+      const elJauge = document.getElementById('jauge-txponte');
+      
+      if (elJauge) {
+        elJauge.innerText = Math.round(tauxAujourdhui) + " %";
+        if (tauxAujourdhui >= 90) {
+          elJauge.style.color = "#276749"; elJauge.style.backgroundColor = "#c6f6d5"; 
+        } else if (tauxAujourdhui >= 70) {
+          elJauge.style.color = "#c05621"; elJauge.style.backgroundColor = "#feebc8"; 
+        } else {
+          elJauge.style.color = "#9b2c2c"; elJauge.style.backgroundColor = "#fed7d7"; 
+        }
+      }
+      
+      const ctxTx = document.getElementById('chart-txponte');
+      if (ctxTx) {
+        if (chartTxPonte) chartTxPonte.destroy(); 
+        
+        chartTxPonte = new Chart(ctxTx, {
+          type: 'line',
+          data: {
+            labels: labels30,
+            datasets: [
+              {
+                label: 'Taux quotidien (%)',
+                data: tauxQuotidien,
+                borderColor: '#e0cc9d',
+                backgroundColor: 'rgba(224, 204, 157, 0.2)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3, 
+                pointRadius: 1
+              },
+              {
+                label: 'Tendance (Moy. 7j)',
+                data: moyenne7j,
+                borderColor: '#e8a33d',
+                borderWidth: 3,
+                borderDash: [5, 5], 
+                fill: false,
+                tension: 0.4,
+                pointRadius: 0
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, max: 100 } },
+            plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } }
+          }
+        });
+      }
+    } else {
+      if (chartTxPonte) {
+        chartTxPonte.destroy();
+        chartTxPonte = null;
+      }
+    }
+
+    // --- 5. GRAPHIQUE PERFORMANCE (TOP / FLOP) ---
+    // CA Y EST ! ON EST BIEN À L'INTÉRIEUR DE LA LECTURE DE DONNÉES !
+    const checkPerf = document.getElementById('cfg-graph-perf');
+    
+    if (checkPerf && checkPerf.checked) {
+      let statsPoules = {};
+      
+      // A. On liste toutes les poules de la base
+      poules.forEach(p => {
+         if (p.nom) {
+             let nomPropre = String(p.nom).trim();
+             statsPoules[nomPropre] = { nom: nomPropre, oeufs: 0, statut: p.statut };
+         }
+      });
+
+      // B. Calcul de la date limite (30 jours en arrière)
+      let date30j = new Date();
+      date30j.setDate(date30j.getDate() - 30);
+      let dateLimite = date30j.toISOString().split('T')[0];
+
+      // C. On ajoute les œufs
+      pontes.forEach(p => {
+          if (p.date >= dateLimite && p.nomPoule && p.nomPoule !== "Global" && !p.nomPoule.startsWith("Lot ")) {
+              let nomPropre = String(p.nomPoule).trim();
+              
+              if (!statsPoules[nomPropre]) {
+                  statsPoules[nomPropre] = { nom: nomPropre, oeufs: 0, statut: "Inconnu" };
+              }
+              
+              statsPoules[nomPropre].oeufs += parseInt(p.quantite) || 0;
+          }
+      });
+
+      // D. On nettoie et on trie
+      let tableauPerf = Object.values(statsPoules).filter(item => {
+          if (item.oeufs > 0) return true; 
+          if (item.statut === 'Décédé' || item.statut === 'Réforme') return false; 
+          return true; 
+      }).sort((a, b) => b.oeufs - a.oeufs);
+
+      // E. Couleurs et Textes
+      let labelsPerf = [];
+      let dataPerf = [];
+      let colorsPerf = [];
+
+      if (tableauPerf.length === 0) {
+          labelsPerf.push("Aucune donnée 30j");
+          dataPerf.push(0);
+          colorsPerf.push('#cbd5e0');
+      } else {
+          tableauPerf.forEach((item, index) => {
+              labelsPerf.push(item.nom);
+              dataPerf.push(item.oeufs);
+
+              if (item.oeufs > 0 && index < 3) {
+                  colorsPerf.push('#4c8c4a'); // Top 3 Vert
+              } else if (item.oeufs === 0) {
+                  colorsPerf.push('#e53e3e'); // Flop (0 œuf)
+              } else if (index >= tableauPerf.length - 3 && tableauPerf.length > 3) {
+                  colorsPerf.push('#e53e3e'); // Flop 3 Rouge
+              } else {
+                  colorsPerf.push('#e0cc9d'); // Milieu Beige
+              }
+          });
+      }
+
+      // F. Dessin du graphique
+      const ctxPerf = document.getElementById('chart-perf');
+      if (ctxPerf) {
+          if (chartPerf) chartPerf.destroy();
+          chartPerf = new Chart(ctxPerf, {
+              type: 'bar',
+              data: {
+                  labels: labelsPerf,
+                  datasets: [{
+                      label: 'Œufs',
+                      data: dataPerf,
+                      backgroundColor: colorsPerf,
+                      borderRadius: 6
+                  }]
+              },
+              options: {
+                  indexAxis: 'y',
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: { 
+                      x: { 
+                          beginAtZero: true, 
+                          suggestedMax: 10,
+                          ticks: { stepSize: 1 }
+                      } 
+                  }
+              }
+          });
+      }
+    } else {
+      if (chartPerf) { chartPerf.destroy(); chartPerf = null; }
+    }
+
+    // --- 6. GRAPHIQUE PYRAMIDE DES ÂGES ---
+    const checkAge = document.getElementById('cfg-graph-age');
+    if (checkAge && checkAge.checked) {
+      let age0_1 = 0, age1_2 = 0, age2_plus = 0;
+      let dateActuelle = new Date();
+
+      poules.forEach(p => {
+          if (p.statut !== 'Décédé' && p.statut !== 'Réforme') {
+              if (p.dateArrivee) {
+                  let dateArr = new Date(p.dateArrivee);
+                  let diffAnnees = (dateActuelle - dateArr) / (1000 * 60 * 60 * 24 * 365.25);
+                  if (diffAnnees < 1) age0_1++;
+                  else if (diffAnnees < 2) age1_2++;
+                  else age2_plus++;
+              } else {
+                  // Si pas de date, on la met au milieu par défaut pour ne pas fausser les alertes
+                  age1_2++;
+              }
+          }
+      });
+
+      const elAlerte = document.getElementById('alerte-renouvellement');
+      if (elAlerte) {
+          if (age2_plus > 0) {
+              elAlerte.style.display = 'block';
+              elAlerte.innerText = `⚠️ ${age2_plus} poule(s) de plus de 2 ans. Prévoir renouvellement.`;
+          } else {
+              elAlerte.style.display = 'none';
+          }
+      }
+
+      const ctxAge = document.getElementById('chart-age');
+      if (ctxAge) {
+          if (window.chartAge) window.chartAge.destroy();
+          window.chartAge = new Chart(ctxAge, {
+              type: 'bar',
+              data: {
+                  labels: ['- de 1 an', '1 à 2 ans', '+ de 2 ans'],
+                  datasets: [{
+                      data: [age0_1, age1_2, age2_plus],
+                      backgroundColor: ['#4c8c4a', '#e8a33d', '#e53e3e'],
+                      borderRadius: 6
+                  }]
+              },
+              options: {
+                  indexAxis: 'y', // Barres horizontales
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+              }
+          });
+      }
+    } else {
+      if (window.chartAge) { window.chartAge.destroy(); window.chartAge = null; }
+    }
+
+
+    // --- 7. GRAPHIQUE COÛT DE REVIENT DE L'ŒUF ---
+    const checkCoutOeuf = document.getElementById('cfg-graph-cout-oeuf');
+    if (checkCoutOeuf && checkCoutOeuf.checked) {
+      let statsMoisCout = {};
+      const moisNomsCourts = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jui", "Jui", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+      
+      // Initialisation des 6 derniers mois
+      for(let i = 5; i >= 0; i--) {
+          let d = new Date();
+          d.setMonth(d.getMonth() - i);
+          let cle = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2, '0');
+          statsMoisCout[cle] = { label: moisNomsCourts[d.getMonth()], depenses: 0, oeufs: 0 };
+      }
+
+      // Cumul des dépenses (hors investissements matériels lourds)
+      couts.forEach(c => {
+          let cle = c.date.substring(0, 7);
+          if (statsMoisCout[cle]) statsMoisCout[cle].depenses += c.montant;
+      });
+
+      // Cumul des œufs pondus
+      pontes.forEach(p => {
+          let cle = p.date.substring(0, 7);
+          if (statsMoisCout[cle]) statsMoisCout[cle].oeufs += p.quantite;
+      });
+
+      let labelsCout = [];
+      let dataCout = [];
+      let dataPrixCommerce = [];
+      let prixCommerce = parseFloat(document.getElementById('sim-prix')?.value) || 0.40;
+      let coutDernierMois = 0;
+
+      Object.values(statsMoisCout).forEach(mois => {
+          labelsCout.push(mois.label);
+          let coutUnitaire = mois.oeufs > 0 ? (mois.depenses / mois.oeufs) : 0;
+          dataCout.push(coutUnitaire.toFixed(2));
+          dataPrixCommerce.push(prixCommerce);
+          coutDernierMois = coutUnitaire; // Le dernier itéré sera celui du mois en cours
+      });
+
+      const elBadgeCout = document.getElementById('badge-cout-oeuf');
+      if (elBadgeCout) {
+          elBadgeCout.innerText = coutDernierMois.toFixed(2) + " €";
+          elBadgeCout.style.color = coutDernierMois <= prixCommerce ? "#276749" : "#9b2c2c";
+          elBadgeCout.style.backgroundColor = coutDernierMois <= prixCommerce ? "#c6f6d5" : "#fed7d7";
+      }
+
+      const ctxCout = document.getElementById('chart-cout-oeuf');
+      if (ctxCout) {
+          if (window.chartCoutOeuf) window.chartCoutOeuf.destroy();
+          window.chartCoutOeuf = new Chart(ctxCout, {
+              type: 'line',
+              data: {
+                  labels: labelsCout,
+                  datasets: [
+                      {
+                          label: 'Coût / œuf (€)',
+                          data: dataCout,
+                          borderColor: '#5d8aa3',
+                          backgroundColor: 'rgba(93, 138, 163, 0.2)',
+                          borderWidth: 3,
+                          fill: true,
+                          tension: 0.3
+                      },
+                      {
+                          label: 'Prix Commerce (€)',
+                          data: dataPrixCommerce,
+                          borderColor: '#e53e3e',
+                          borderWidth: 2,
+                          borderDash: [5, 5],
+                          fill: false,
+                          pointRadius: 0
+                      }
+                  ]
+              },
+              options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  scales: { y: { beginAtZero: true } },
+                  plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+              }
+          });
+      }
+    } else {
+      if (window.chartCoutOeuf) { window.chartCoutOeuf.destroy(); window.chartCoutOeuf = null; }
+    }
+
+    // --- 8. GRAPHIQUE BILAN FINANCIER MENSUEL ---
+    const checkBilanMois = document.getElementById('cfg-graph-bilan-mois');
+    if (checkBilanMois && checkBilanMois.checked) {
+      let statsFinMois = {};
+      const moisNoms = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jui", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+      
+      // On prépare les 6 derniers mois
+      for(let i = 5; i >= 0; i--) {
+          let d = new Date();
+          d.setMonth(d.getMonth() - i);
+          let cle = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2, '0');
+          statsFinMois[cle] = { label: moisNoms[d.getMonth()], ecos: 0, ventes: 0, couts: 0 };
+      }
+
+      // On répartit les données financières
+      consos.forEach(c => { let cle = c.date.substring(0, 7); if (statsFinMois[cle]) statsFinMois[cle].ecos += c.economie; });
+      ventes.forEach(v => { let cle = v.date.substring(0, 7); if (statsFinMois[cle]) statsFinMois[cle].ventes += v.total; });
+      couts.forEach(c => { let cle = c.date.substring(0, 7); if (statsFinMois[cle]) statsFinMois[cle].couts += c.montant; });
+
+      let labelsFinMois = [], dataEcos = [], dataVentes = [], dataCouts = [], dataBenef = [];
+      Object.values(statsFinMois).forEach(m => {
+          labelsFinMois.push(m.label);
+          dataEcos.push(m.ecos);
+          dataVentes.push(m.ventes);
+          dataCouts.push(m.couts);
+          dataBenef.push((m.ecos + m.ventes) - m.couts); // Bénéfice = (Économies + Ventes) - Coûts
+      });
+
+      const ctxBilanMois = document.getElementById('chart-bilan-mois');
+      if (ctxBilanMois) {
+          if (window.chartBilanMois) window.chartBilanMois.destroy();
+          window.chartBilanMois = new Chart(ctxBilanMois, {
+              type: 'bar',
+              data: {
+                  labels: labelsFinMois,
+                  datasets: [
+                      { type: 'line', label: 'Bénéfice Net', data: dataBenef, borderColor: '#3182ce', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.3 },
+                      { type: 'line', label: 'Coûts (Dépenses)', data: dataCouts, borderColor: '#e53e3e', borderWidth: 2, fill: false, tension: 0.3 },
+                      { type: 'bar', label: 'Ventes', data: dataVentes, backgroundColor: '#2f855a', stack: 'Valeur' },
+                      { type: 'bar', label: 'Économies (Conso)', data: dataEcos, backgroundColor: '#68d391', stack: 'Valeur' }
+                  ]
+              },
+              options: {
+                  responsive: true, 
+                  maintainAspectRatio: false,
+                  scales: { 
+                      y: { beginAtZero: true },
+                      x: { stacked: true } // Active l'empilement des barres
+                  },
+                  plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
+              }
+          });
+      }
+    } else {
+        if (window.chartBilanMois) { window.chartBilanMois.destroy(); window.chartBilanMois = null; }
+    }
+
+
+    // --- 9. GRAPHIQUE BILAN ANNUEL ---
+    const checkBilanAn = document.getElementById('cfg-graph-bilan-an');
+    if (checkBilanAn && checkBilanAn.checked) {
+        let anneeEnCours = new Date().getFullYear().toString();
+        let anEcos = 0, anVentes = 0, anCouts = 0;
+
+        // On ne prend que les données de l'année actuelle
+        consos.forEach(c => { if (c.date.startsWith(anneeEnCours)) anEcos += c.economie; });
+        ventes.forEach(v => { if (v.date.startsWith(anneeEnCours)) anVentes += v.total; });
+        couts.forEach(c => { if (c.date.startsWith(anneeEnCours)) anCouts += c.montant; });
+
+        let anValeur = anEcos + anVentes;
+        let anBenef = anValeur - anCouts;
+
+        let dataAn = [anEcos, anVentes, anValeur, anCouts, anBenef];
+        let bgColors = [
+            '#68d391', // Vert clair (Économies)
+            '#2f855a', // Vert foncé (Ventes)
+            '#48bb78', // Vert moyen (Valeur)
+            '#e53e3e', // Rouge (Coûts)
+            anBenef >= 0 ? '#38a169' : '#c53030' // Bénéfice : Vert si >0, Rouge si perte
+        ];
+
+        const ctxBilanAn = document.getElementById('chart-bilan-an');
+        if (ctxBilanAn) {
+            if (window.chartBilanAn) window.chartBilanAn.destroy();
+            window.chartBilanAn = new Chart(ctxBilanAn, {
+                type: 'bar',
+                data: {
+                    labels: ['Économies', 'Ventes', 'Valeur Créée', 'Coûts', 'BÉNÉFICE NET'],
+                    datasets: [{
+                        data: dataAn,
+                        backgroundColor: bgColors,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Barres à l'horizontale
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true } }
+                }
+            });
+        }
+    } else {
+        if (window.chartBilanAn) { window.chartBilanAn.destroy(); window.chartBilanAn = null; }
+    }
+
+    // --- 10. GRAPHIQUE STOCK & COULEURS ---
+    const checkStock = document.getElementById('cfg-graph-stock');
+    if (checkStock && checkStock.checked) {
+        let stockCouleurs = {};
+        let totalOeufs = 0;
+
+        // On compte les pontes
+        pontes.forEach(p => {
+            let coul = p.couleur || 'Inconnue';
+            if (!stockCouleurs[coul]) stockCouleurs[coul] = 0;
+            stockCouleurs[coul] += parseInt(p.quantite) || 0;
+            totalOeufs += parseInt(p.quantite) || 0;
+        });
+
+        // On soustrait les ventes et consos
+        const deduireStock = (item) => {
+            let coul = "Inconnue";
+            if (item.typeOeuf && item.typeOeuf.includes('🥚')) {
+                coul = item.typeOeuf.split('🥚')[1].replace(')', '').trim();
+            }
+            if (stockCouleurs[coul] !== undefined) {
+                stockCouleurs[coul] -= parseInt(item.quantite) || 0;
+                totalOeufs -= parseInt(item.quantite) || 0;
+            }
+        };
+        ventes.forEach(deduireStock);
+        consos.forEach(deduireStock);
+
+        // Algorithme de Fraîcheur (> 14 jours)
+        let oeufs14j = 0;
+        let date14j = new Date();
+        date14j.setDate(date14j.getDate() - 14);
+        let limite14j = date14j.toISOString().split('T')[0];
+        
+        pontes.forEach(p => { if (p.date >= limite14j) oeufs14j += parseInt(p.quantite) || 0; });
+
+        let stockPerime = Math.max(0, totalOeufs - oeufs14j);
+        const elAlerteF = document.getElementById('alerte-fraicheur');
+        if (elAlerteF) {
+            if (stockPerime > 0) {
+                elAlerteF.style.display = 'block';
+                elAlerteF.innerText = `⚠️ Attention : environ ${stockPerime} œuf(s) ont plus de 14 jours !`;
+            } else {
+                elAlerteF.style.display = 'none';
+            }
+        }
+
+        let labelsStock = [], dataStock = [], bgStock = [];
+        const colorMap = {
+            'Roux / Brun': '#c97445', 'Brun roux': '#c97445', 'Chocolat': '#4a2511',
+            'Vert / Bleu': '#a9c9b5', 'Bleu ciel': '#c6daef', 'Bleu-vert': '#a9c9b5',
+            'Blanc': '#f0f0f0', 'Crémeux': '#fdf6ea', 'Crème': '#fdf6ea',
+            'Brun rosé': '#dca47c', 'Brun clair': '#e6c6a5', 'Beige rose': '#e8d0d0'
+        };
+
+        for (let [coul, qte] of Object.entries(stockCouleurs)) {
+            if (qte > 0) {
+                labelsStock.push(coul); dataStock.push(qte); bgStock.push(colorMap[coul] || '#cccccc');
+            }
+        }
+
+        const ctxStock = document.getElementById('chart-stock-couleurs');
+        if (ctxStock) {
+            if (window.chartStockCouleurs) window.chartStockCouleurs.destroy();
+            window.chartStockCouleurs = new Chart(ctxStock, {
+                type: 'doughnut',
+                data: {
+                    labels: labelsStock.length > 0 ? labelsStock : ['Stock vide'],
+                    datasets: [{
+                        data: dataStock.length > 0 ? dataStock : [1],
+                        backgroundColor: bgStock.length > 0 ? bgStock : ['#ebedf0'],
+                        borderWidth: 1
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+            });
+        }
+    } else {
+        if (window.chartStockCouleurs) { window.chartStockCouleurs.destroy(); window.chartStockCouleurs = null; }
+    }
+
+
+    // --- 11. HEATMAP (CALENDRIER GITHUB) ---
+    const checkHeatmap = document.getElementById('cfg-graph-heatmap');
+    if (checkHeatmap && checkHeatmap.checked) {
+        const heatmapContainer = document.getElementById('heatmap-container');
+        if (heatmapContainer) {
+            heatmapContainer.innerHTML = '';
+            let oeufsParJour = {};
+            pontes.forEach(p => {
+                if (p.date) {
+                    if (!oeufsParJour[p.date]) oeufsParJour[p.date] = 0;
+                    oeufsParJour[p.date] += parseInt(p.quantite) || 0;
+                }
+            });
+
+            let maxOeufs = Math.max(1, ...Object.values(oeufsParJour));
+            let dateFin = new Date();
+            let dateDebut = new Date();
+            dateDebut.setDate(dateFin.getDate() - 364); // 52 semaines
+
+            let currentDay = new Date(dateDebut);
+            let html = '';
+            for (let w = 0; w < 52; w++) {
+                html += '<div style="display: flex; flex-direction: column; gap: 3px;">';
+                for (let d = 0; d < 7; d++) {
+                    let dateStr = currentDay.toISOString().split('T')[0];
+                    let oeufs = oeufsParJour[dateStr] || 0;
+                    
+                    let bgColor = '#ebedf0'; // Vide
+                    if (oeufs > 0) {
+                        let ratio = oeufs / maxOeufs;
+                        if (ratio < 0.25) bgColor = '#c6e48b';
+                        else if (ratio < 0.5) bgColor = '#7bc96f';
+                        else if (ratio < 0.75) bgColor = '#239a3b';
+                        else bgColor = '#196127'; // Top production
+                    }
+                    
+                    html += `<div title="${new Date(dateStr).toLocaleDateString('fr-FR')} : ${oeufs} œuf(s)" style="width: 12px; height: 12px; background: ${bgColor}; border-radius: 2px;"></div>`;
+                    currentDay.setDate(currentDay.getDate() + 1);
+                }
+                html += '</div>';
+            }
+            heatmapContainer.innerHTML = html;
+        }
+    } else {
+        const heatmapContainer = document.getElementById('heatmap-container');
+        if (heatmapContainer) heatmapContainer.innerHTML = '';
+    }
+
+  }; // <--- FIN DE LA LECTURE DE LA BASE DE DONNÉES (t.oncomplete)
+} // <--- FIN DE LA FONCTION actualiserDashboardPoules

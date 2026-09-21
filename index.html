@@ -333,6 +333,7 @@
         <button class="tab-btn" data-cible="poules-conso">🏠 Consommation</button>
         <button class="tab-btn" data-cible="poules-invest">🔧 Investissements</button>
         <button class="tab-btn" data-cible="poules-renta">💰 Rentabilité</button>
+        <button class="tab-btn" data-cible="poules-reglages">⚙️ Paramètres</button>
         <button class="tab-btn" data-cible="poules-sauvegarde">💾 Sauvegarde</button>
       </nav>
 
@@ -361,7 +362,7 @@
         <!-- Les Graphiques interactifs -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 16px; margin-top: 16px;">
           
-          <div class="card">
+          <div class="card" id="card-graph-prod">
             <h2>📈 Production & Utilisation (6 derniers mois)</h2>
             <p style="font-size: 12px; color: var(--text2); margin-bottom: 10px;">Évolution des pontes par rapport à ce que tu vends et manges.</p>
             <div style="position: relative; height: 250px;">
@@ -369,11 +370,100 @@
             </div>
           </div>
           
-          <div class="card">
+          <div class="card" id="card-graph-depenses">
             <h2>💸 Répartition de tes dépenses</h2>
             <p style="font-size: 12px; color: var(--text2); margin-bottom: 10px;">Analyse de tes coûts d'entretien et investissements.</p>
             <div style="position: relative; height: 250px;">
               <canvas id="chart-depenses"></canvas>
+            </div>
+          </div>
+
+          <div class="card" id="card-graph-txponte" style="display: none;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+    <h2 style="margin: 0;">📊 Taux de ponte (30j)</h2>
+    <div id="jauge-txponte" style="font-size: 18px; font-weight: 900; background: var(--bg2); padding: 5px 12px; border-radius: 8px;">--%</div>
+  </div>
+  <p style="font-size: 12px; color: var(--text2); margin-bottom: 10px;">Évalue la performance du cheptel (Moyenne mobile vs Poules actives).</p>
+  <div style="position: relative; height: 200px;">
+    <canvas id="chart-txponte"></canvas>
+  </div>
+</div>
+
+          <div class="card" id="card-graph-perf" style="display: none;">
+          <h2>🏆 Performance individuelle (30 derniers jours)</h2>
+          <p style="font-size: 12px; color: var(--text2); margin-bottom: 10px;">Classement des poules actives selon le nombre d'œufs pondus récemment.</p>
+          <div style="position: relative; height: 250px;">
+            <canvas id="chart-perf"></canvas>
+          </div>
+        </div>
+
+        <!-- NOUVEAU : 3. Pyramide des âges -->
+          <div class="card" id="card-graph-age">
+            <h2>🎂 Pyramide des âges (Cheptel)</h2>
+            <p style="font-size: 12px; color: var(--text2); margin-bottom: 10px;">Répartition de tes poules par tranche d'âge.</p>
+            <div id="alerte-renouvellement" style="display: none; background: #fed7d7; color: #9b2c2c; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-bottom: 10px; text-align: center;">
+              --
+            </div>
+            <div style="position: relative; height: 200px;">
+              <canvas id="chart-age"></canvas>
+            </div>
+          </div>
+
+          <!-- NOUVEAU : 4. Coût de revient d'un œuf -->
+          <div class="card" id="card-graph-cout-oeuf">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <h2 style="margin: 0;">📉 Coût d'un œuf</h2>
+              <div id="badge-cout-oeuf" style="font-size: 14px; font-weight: bold; background: var(--bg2); padding: 4px 8px; border-radius: 6px;">-- €</div>
+            </div>
+            <p style="font-size: 12px; color: var(--text2); margin-bottom: 10px;">Coût de production réel sur les 6 derniers mois par rapport au prix du commerce.</p>
+            <div style="position: relative; height: 200px;">
+              <canvas id="chart-cout-oeuf"></canvas>
+            </div>
+          </div>
+
+          <!-- NOUVEAU : 5. Bilan financier mensuel -->
+          <div class="card" id="card-graph-bilan-mois">
+            <h2>📊 Bilan financier mensuel (6 mois)</h2>
+            <p style="font-size: 12px; color: var(--text2); margin-bottom: 10px;">Valeur créée (Économies + Ventes) comparée à tes coûts d'entretien.</p>
+            <div style="position: relative; height: 280px;">
+              <canvas id="chart-bilan-mois"></canvas>
+            </div>
+          </div>
+
+          <!-- NOUVEAU : 6. Bilan financier annuel -->
+          <div class="card" id="card-graph-bilan-an">
+            <h2>📅 Bilan financier de l'année en cours</h2>
+            <p style="font-size: 12px; color: var(--text2); margin-bottom: 10px;">Résumé cumulé de tes finances depuis le 1er janvier.</p>
+            <div style="position: relative; height: 220px;">
+              <canvas id="chart-bilan-an"></canvas>
+            </div>
+          </div>
+
+          <!-- NOUVEAU : 7. Stock et Fraîcheur -->
+          <div class="card" id="card-graph-stock">
+            <h2>📦 État du stock par couleur</h2>
+            <p style="font-size: 12px; color: var(--text2); margin-bottom: 10px;">Répartition visuelle des œufs disponibles.</p>
+            <div id="alerte-fraicheur" style="display: none; background: #fed7d7; color: #9b2c2c; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-bottom: 10px; text-align: center;">
+              --
+            </div>
+            <div style="position: relative; height: 180px;">
+              <canvas id="chart-stock-couleurs"></canvas>
+            </div>
+          </div>
+
+          <!-- NOUVEAU : 8. Heatmap type GitHub -->
+          <div class="card" id="card-graph-heatmap" style="grid-column: 1 / -1;">
+            <h2>🟩 Calendrier d'activité (365 jours)</h2>
+            <p style="font-size: 12px; color: var(--text2); margin-bottom: 10px;">Historique des pontes. Plus la case est foncée, plus la récolte a été abondante.</p>
+            <div style="overflow-x: auto; padding-bottom: 10px;">
+               <div id="heatmap-container" style="display: flex; gap: 3px; min-width: max-content;"></div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 5px; align-items: center; font-size: 10px; color: var(--text2); margin-top: 5px;">
+              Moins <div style="width: 10px; height: 10px; background: #ebedf0; border-radius: 2px;"></div>
+              <div style="width: 10px; height: 10px; background: #c6e48b; border-radius: 2px;"></div>
+              <div style="width: 10px; height: 10px; background: #7bc96f; border-radius: 2px;"></div>
+              <div style="width: 10px; height: 10px; background: #239a3b; border-radius: 2px;"></div>
+              <div style="width: 10px; height: 10px; background: #196127; border-radius: 2px;"></div> Plus
             </div>
           </div>
 
@@ -1286,6 +1376,52 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- 10 bis. Paramètres d'affichage -->
+      <div id="poules-reglages" class="sous-vue">
+        <div class="card">
+          <h2>⚙️ Personnalisation de la Synthèse</h2>
+          <p style="font-size: 12px; color: var(--text2); margin-bottom: 15px;">Décoche les graphiques que tu ne souhaites pas afficher pour accélérer le chargement de l'application sur ton téléphone.</p>
+          
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Graphiques existants -->
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; cursor: pointer;">
+              <input type="checkbox" id="cfg-graph-prod" checked style="transform: scale(1.2);"> 📈 Production & Utilisation (6 mois)
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; cursor: pointer;">
+              <input type="checkbox" id="cfg-graph-depenses" checked style="transform: scale(1.2);"> 💸 Répartition de tes dépenses
+            </label>
+            
+            <hr style="border: 0; border-top: 1px solid var(--border); margin: 5px 0;">
+            
+            <!-- Futurs graphiques (décochés par défaut pour l'instant) -->
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; color: var(--muted); cursor: pointer;">
+              <input type="checkbox" id="cfg-graph-txponte" style="transform: scale(1.2);"> 📊 Taux de ponte 30j (À venir)
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; cursor: pointer;">
+              <input type="checkbox" id="cfg-graph-perf" style="transform: scale(1.2);"> 🏆 Performance des poules (Top/Flop 30j)
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; cursor: pointer;">
+              <input type="checkbox" id="cfg-graph-age" checked style="transform: scale(1.2);"> 🎂 Pyramide des âges
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; cursor: pointer;">
+              <input type="checkbox" id="cfg-graph-cout-oeuf" checked style="transform: scale(1.2);"> 📉 Coût de revient (Œuf)
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; cursor: pointer;">
+              <input type="checkbox" id="cfg-graph-bilan-mois" checked style="transform: scale(1.2);"> 📊 Bilan financier mensuel
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; cursor: pointer;">
+              <input type="checkbox" id="cfg-graph-bilan-an" checked style="transform: scale(1.2);"> 📅 Bilan financier annuel
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; cursor: pointer;">
+              <input type="checkbox" id="cfg-graph-stock" checked style="transform: scale(1.2);"> 📦 État du Stock & Couleurs
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; cursor: pointer;">
+              <input type="checkbox" id="cfg-graph-heatmap" checked style="transform: scale(1.2);"> 🟩 Calendrier de ponte (Heatmap)
+            </label>
+          </div>
+        </div>
       </div>
 
       <!-- 11. Sauvegarde -->
