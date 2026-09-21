@@ -1303,5 +1303,124 @@ function actualiserDashboardPoules() {
         if (heatmapContainer) heatmapContainer.innerHTML = '';
     }
 
+    // ==========================================================
+    // GRAPHIQUES DES ONGLETS SECONDAIRES (Cheptel & Pontes)
+    // ==========================================================
+
+    // --- 12. CHEPTEL : Âge détaillé par poule ---
+    const checkCheptelAge = document.getElementById('cfg-graph-cheptel-age');
+    if (checkCheptelAge && checkCheptelAge.checked) {
+        let labelsAge = [], dataAge = [], bgAge = [];
+        let dateActuelle = new Date();
+
+        // On trie les poules actives de la plus vieille à la plus jeune
+        let poulesActives = poules.filter(p => p.statut !== 'Décédé' && p.statut !== 'Réforme' && p.dateArrivee);
+        poulesActives.sort((a, b) => new Date(a.dateArrivee) - new Date(b.dateArrivee));
+
+        poulesActives.forEach(p => {
+            let diffAnnees = (dateActuelle - new Date(p.dateArrivee)) / (1000 * 60 * 60 * 24 * 365.25);
+            labelsAge.push(p.nom);
+            dataAge.push(diffAnnees.toFixed(1));
+            // Si la poule a plus de 3 ans, on la met en rouge (alerte espérance)
+            bgAge.push(diffAnnees >= 3 ? '#e53e3e' : '#4c8c4a'); 
+        });
+
+        const ctxChAge = document.getElementById('chart-cheptel-age');
+        if (ctxChAge) {
+            if (window.chartCheptelAge) window.chartCheptelAge.destroy();
+            window.chartCheptelAge = new Chart(ctxChAge, {
+                type: 'bar',
+                data: {
+                    labels: labelsAge.length ? labelsAge : ['Aucune date'],
+                    datasets: [{ data: dataAge.length ? dataAge : [0], backgroundColor: bgAge, borderRadius: 4 }]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, title: { display: true, text: 'Âge (Années)' } } }
+                }
+            });
+        }
+    } else { if (window.chartCheptelAge) window.chartCheptelAge.destroy(); }
+
+    // --- 13. CHEPTEL : Répartition des races ---
+    const checkCheptelRace = document.getElementById('cfg-graph-cheptel-race');
+    if (checkCheptelRace && checkCheptelRace.checked) {
+        let statsRaces = {};
+        poules.forEach(p => {
+            if (p.statut !== 'Décédé' && p.statut !== 'Réforme') {
+                let r = p.race && p.race.trim() !== '' ? p.race : 'Inconnue';
+                if (!statsRaces[r]) statsRaces[r] = 0;
+                statsRaces[r]++;
+            }
+        });
+
+        let labelsRace = Object.keys(statsRaces);
+        let dataRace = Object.values(statsRaces);
+        
+        const ctxChRace = document.getElementById('chart-cheptel-race');
+        if (ctxChRace) {
+            if (window.chartCheptelRace) window.chartCheptelRace.destroy();
+            window.chartCheptelRace = new Chart(ctxChRace, {
+                type: 'doughnut',
+                data: {
+                    labels: labelsRace.length ? labelsRace : ['Vide'],
+                    datasets: [{ data: dataRace.length ? dataRace : [1], backgroundColor: ['#e8a33d', '#4c8c4a', '#5d8aa3', '#e53e3e', '#e0cc9d', '#8a715a'], borderWidth: 2 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12 } } } }
+            });
+        }
+    } else { if (window.chartCheptelRace) window.chartCheptelRace.destroy(); }
+
+    // --- 14. PONTES : Évolution sur 90 jours ---
+    const checkPontes90 = document.getElementById('cfg-graph-pontes-90j');
+    if (checkPontes90 && checkPontes90.checked) {
+        let stats90j = {};
+        let date90j = new Date();
+        date90j.setDate(date90j.getDate() - 90);
+        
+        // Initialiser les 90 derniers jours à 0
+        for (let i = 89; i >= 0; i--) {
+            let d = new Date();
+            d.setDate(d.getDate() - i);
+            stats90j[d.toISOString().split('T')[0]] = 0;
+        }
+
+        pontes.forEach(p => {
+            if (p.date >= date90j.toISOString().split('T')[0] && stats90j[p.date] !== undefined) {
+                stats90j[p.date] += parseInt(p.quantite) || 0;
+            }
+        });
+
+        let labels90 = [], data90 = [];
+        for (let [dateStr, qte] of Object.entries(stats90j)) {
+            labels90.push(new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
+            data90.push(qte);
+        }
+
+        const ctxPontes = document.getElementById('chart-pontes-90j');
+        if (ctxPontes) {
+            if (window.chartPontes90) window.chartPontes90.destroy();
+            window.chartPontes90 = new Chart(ctxPontes, {
+                type: 'line',
+                data: {
+                    labels: labels90,
+                    datasets: [{
+                        label: 'Œufs récoltés',
+                        data: data90,
+                        borderColor: '#e8a33d',
+                        backgroundColor: 'rgba(232, 163, 61, 0.2)',
+                        borderWidth: 2, fill: true, tension: 0.2, pointRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+    } else { if (window.chartPontes90) window.chartPontes90.destroy(); }
+
   }; // <--- FIN DE LA LECTURE DE LA BASE DE DONNÉES (t.oncomplete)
 } // <--- FIN DE LA FONCTION actualiserDashboardPoules

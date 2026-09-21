@@ -799,6 +799,20 @@
           </div>
         </div>
 
+        <!-- NOUVEAUX GRAPHIQUES CHEPTEL -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 16px; margin-bottom: 16px;">
+          <div class="card" id="card-graph-cheptel-age">
+             <h2>🎂 Âge détaillé de mes poules actives</h2>
+             <p style="font-size: 11px; color: var(--text2); margin-bottom: 10px;">Les barres en rouge signalent les poules de plus de 3 ans (à surveiller).</p>
+             <div style="position: relative; height: 250px;"><canvas id="chart-cheptel-age"></canvas></div>
+          </div>
+          <div class="card" id="card-graph-cheptel-race">
+             <h2>🧬 Répartition par race</h2>
+             <p style="font-size: 11px; color: var(--text2); margin-bottom: 10px;">Diversité génétique du poulailler.</p>
+             <div style="position: relative; height: 250px;"><canvas id="chart-cheptel-race"></canvas></div>
+          </div>
+        </div>
+
         <!-- Tableau mis à jour -->
         <div class="card" style="margin-top: 16px;">
           <h2>🐔 Mon Cheptel</h2>
@@ -863,6 +877,13 @@
               <button class="btn" id="btn-ajouter-ponte" style="padding: 10px 20px;">Enregistrer</button>
             </div>
           </div>
+        </div>
+
+        <!-- NOUVEAU GRAPHIQUE PONTES -->
+        <div class="card" id="card-graph-pontes-90j" style="margin-top: 16px; margin-bottom: 16px;">
+           <h2>📈 Évolution des pontes (90 derniers jours)</h2>
+           <p style="font-size: 11px; color: var(--text2); margin-bottom: 10px;">Tendance à court et moyen terme.</p>
+           <div style="position: relative; height: 250px;"><canvas id="chart-pontes-90j"></canvas></div>
         </div>
 
         <!-- Tableau d'historique -->
@@ -1419,6 +1440,19 @@
             </label>
             <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; cursor: pointer;">
               <input type="checkbox" id="cfg-graph-heatmap" checked style="transform: scale(1.2);"> 🟩 Calendrier de ponte (Heatmap)
+            </label>
+            <hr style="border: 0; border-top: 1px solid var(--border); margin: 10px 0;">
+            <h3 style="font-size: 14px; color: var(--accent-dark); margin-bottom: 5px;">🐔 Onglet Cheptel</h3>
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; cursor: pointer;">
+              <input type="checkbox" id="cfg-graph-cheptel-age" checked style="transform: scale(1.2);"> Âge détaillé par poule
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; cursor: pointer;">
+              <input type="checkbox" id="cfg-graph-cheptel-race" checked style="transform: scale(1.2);"> Répartition des races
+            </label>
+            
+            <h3 style="font-size: 14px; color: var(--accent-dark); margin-top: 10px; margin-bottom: 5px;">🥚 Onglet Pontes</h3>
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; cursor: pointer;">
+              <input type="checkbox" id="cfg-graph-pontes-90j" checked style="transform: scale(1.2);"> Courbe des 90 jours
             </label>
           </div>
         </div>

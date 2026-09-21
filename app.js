@@ -983,7 +983,10 @@ const configGraphs = [
   { idCfg: 'cfg-graph-bilan-mois', idCard: 'card-graph-bilan-mois' }, // NOUVEAU
   { idCfg: 'cfg-graph-bilan-an', idCard: 'card-graph-bilan-an' },      // NOUVEAU
   { idCfg: 'cfg-graph-stock', idCard: 'card-graph-stock' },       // NOUVEAU
-  { idCfg: 'cfg-graph-heatmap', idCard: 'card-graph-heatmap' }    // NOUVEAU
+  { idCfg: 'cfg-graph-heatmap', idCard: 'card-graph-heatmap' },    // NOUVEAU
+  { idCfg: 'cfg-graph-cheptel-age', idCard: 'card-graph-cheptel-age' },   // NOUVEAU
+  { idCfg: 'cfg-graph-cheptel-race', idCard: 'card-graph-cheptel-race' }, // NOUVEAU
+  { idCfg: 'cfg-graph-pontes-90j', idCard: 'card-graph-pontes-90j' }      // NOUVEAU
 ];
 
 function initialiserParametresAffichage() {
